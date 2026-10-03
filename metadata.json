@@ -1,0 +1,6 @@
+{
+  "name": "My Files",
+  "description": "A fast, lightweight Android file manager inspired by Samsung My Files with folder browsing, copy, move, rename, delete, and share.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

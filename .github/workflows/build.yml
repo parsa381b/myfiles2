@@ -1,0 +1,94 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [ "main", "master" ]
+    tags:
+      - 'v*'
+  pull_request:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build & Package APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.11.1'
+
+      - name: Prepare Keystore & Environment
+        run: |
+          # Create .env from template if not present
+          if [ ! -f .env ]; then
+            cp .env.example .env 2>/dev/null || touch .env
+          fi
+          
+          # Decode debug.keystore from base64 if needed
+          if [ -f debug.keystore.base64 ] && [ ! -f debug.keystore ]; then
+            echo "Decoding debug.keystore from base64..."
+            base64 -d debug.keystore.base64 > debug.keystore || true
+          fi
+          
+          # Generate Gradle wrapper if missing
+          if [ ! -f gradlew ]; then
+            echo "Generating Gradle wrapper..."
+            gradle wrapper --gradle-version 8.11.1
+          fi
+          chmod +x gradlew || true
+
+      - name: Build Debug APK
+        run: |
+          ./gradlew assembleDebug --stacktrace || gradle assembleDebug --stacktrace
+
+      - name: Locate and Package APK
+        id: package_apk
+        run: |
+          mkdir -p build_output
+          APK_FILE=$(find app/build/outputs/apk/debug -name "*.apk" -type f | head -n 1)
+          if [ -z "$APK_FILE" ]; then
+            APK_FILE=$(find app/build/outputs/apk -name "*.apk" -type f | head -n 1)
+          fi
+          if [ -z "$APK_FILE" ]; then
+            echo "::error::No APK file generated during build."
+            exit 1
+          fi
+          echo "Found APK: $APK_FILE"
+          cp "$APK_FILE" build_output/MyFiles-Debug.apk
+          echo "apk_path=build_output/MyFiles-Debug.apk" >> $GITHUB_OUTPUT
+
+      - name: Upload APK to Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: MyFiles-Debug-APK
+          path: build_output/MyFiles-Debug.apk
+          retention-days: 30
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: build_output/MyFiles-Debug.apk
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
