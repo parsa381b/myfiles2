@@ -116,6 +116,7 @@ dependencies {
   implementation(libs.apache.commons.compress)
   implementation(libs.tukaani.xz)
   implementation(libs.junrar)
+  implementation(libs.android.pdf.viewer)
   // implementation(libs.logging.interceptor)
   // implementation(libs.moshi.kotlin)
   // implementation(libs.okhttp)

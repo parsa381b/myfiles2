@@ -26,7 +26,7 @@ A fast, lightweight, and responsive Android file manager styled after **Samsung 
   - **Image Viewer**: High-res viewing with pinch-to-zoom (up to 6x), double-tap zoom toggle, panning, 90° rotation, and sharing (JPEG, PNG, GIF, WebP, BMP, HEIC, SVG).
   - **Video Player**: Native hardware-accelerated playback with play/pause, scrub slider, 10s forward/rewind, full-screen controls, and proper edge-to-edge window insets padding (`navigationBarsPadding()` / `statusBarsPadding()`) preventing bottom control clipping (MP4, MKV, AVI, MOV, WebM, 3GP).
   - **Audio Player**: One UI music player card with album art, scrub slider, repeat/loop mode, 10s skip, and background audio support (MP3, WAV, FLAC, OGG, M4A, AAC).
-  - **PDF Viewer**: Native zero-dependency document renderer using Android's `PdfRenderer` with page navigation (Next/Previous, Page X of Y) and smooth zoom.
+  - **PDF Reader**: Powered by **AndroidPdfViewer** with multi-page continuous vertical rendering, hardware-accelerated tile rasterization, pinch-to-zoom, double-tap zoom, fast scroll handle (`DefaultScrollHandle`), Night mode inverted reading, view mode toggle (continuous vertical scroll vs. horizontal page flip), and a floating page navigation pill with jump slider (`Page X of Y`).
   - **Text Editor**: Syntax-highlighted code editor for Kotlin, Java, Python, JS, TS, HTML, XML, JSON, SQL, Bash, Markdown, etc., with line numbers, Edit/View modes, and in-place file saving.
 - 🛠️ **Full File Management**:
   - **Superfast Universal Search**: Real-time dual-engine search combining Android MediaStore indexed SQLite queries (10-30ms execution) with breadth-first file system scanning across internal storage, SD cards, and USB OTG drives.

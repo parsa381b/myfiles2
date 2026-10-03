@@ -43,6 +43,7 @@ googleid = "1.1.1"
 commonsCompress = "1.26.1"
 tukaaniXz = "1.9"
 junrar = "7.5.5"
+androidPdfViewer = "3.2.0-beta.3"
 
 
 [libraries]
@@ -100,6 +101,7 @@ googleid = { group = "com.google.android.libraries.identity.googleid", name = "g
 apache-commons-compress = { group = "org.apache.commons", name = "commons-compress", version.ref = "commonsCompress" }
 tukaani-xz = { group = "org.tukaani", name = "xz", version.ref = "tukaaniXz" }
 junrar = { group = "com.github.junrar", name = "junrar", version.ref = "junrar" }
+android-pdf-viewer = { group = "com.github.mhiew", name = "android-pdf-viewer", version.ref = "androidPdfViewer" }
 
 
 [plugins]

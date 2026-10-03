@@ -198,4 +198,10 @@ class ExampleUnitTest {
         val videoFile = File("/storage/emulated/0/DCIM/Camera/vid.mp4")
         assertEquals(false, audioExts.contains(videoFile.extension.lowercase()))
     }
+
+    @Test
+    fun testPdfExtension() {
+        val pdfFile = File("/storage/emulated/0/Download/document.pdf")
+        assertEquals("pdf", pdfFile.extension.lowercase())
+    }
 }
