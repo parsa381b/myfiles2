@@ -106,6 +106,21 @@ class FileViewModel(
     private val _hasStoragePermission = MutableStateFlow(false)
     val hasStoragePermission: StateFlow<Boolean> = _hasStoragePermission.asStateFlow()
 
+    private val storageAnalysisRepository = com.example.data.repository.StorageAnalysisRepository()
+    private val duplicateFinderRepository = com.example.data.repository.DuplicateFinderRepository()
+
+    private val _storageAnalysis = MutableStateFlow<com.example.data.model.StorageAnalysisResult?>(null)
+    val storageAnalysis: StateFlow<com.example.data.model.StorageAnalysisResult?> = _storageAnalysis.asStateFlow()
+
+    private val _isAnalyzingStorage = MutableStateFlow(false)
+    val isAnalyzingStorage: StateFlow<Boolean> = _isAnalyzingStorage.asStateFlow()
+
+    private val _duplicateGroups = MutableStateFlow<List<com.example.data.model.DuplicateGroup>?>(null)
+    val duplicateGroups: StateFlow<List<com.example.data.model.DuplicateGroup>?> = _duplicateGroups.asStateFlow()
+
+    private val _isScanningDuplicates = MutableStateFlow(false)
+    val isScanningDuplicates: StateFlow<Boolean> = _isScanningDuplicates.asStateFlow()
+
     private val _userMessage = MutableSharedFlow<String>()
     val userMessage: SharedFlow<String> = _userMessage.asSharedFlow()
 
@@ -282,7 +297,13 @@ class FileViewModel(
     }
 
     fun selectAll(items: List<FileItem>) {
-        _selectedItems.value = items.toSet()
+        val current = _selectedItems.value
+        val itemsSet = items.toSet()
+        if (itemsSet.isNotEmpty() && current.containsAll(itemsSet)) {
+            _selectedItems.value = emptySet()
+        } else {
+            _selectedItems.value = itemsSet
+        }
     }
 
     fun clearSelection() {
@@ -478,5 +499,63 @@ class FileViewModel(
             refreshCurrentDirectory()
         }
         return result
+    }
+
+    fun analyzeStorage() {
+        viewModelScope.launch {
+            _isAnalyzingStorage.value = true
+            try {
+                _storageAnalysis.value = storageAnalysisRepository.analyzeStorage(getApplication())
+            } catch (e: Exception) {
+                _userMessage.emit("Storage analysis failed: ${e.localizedMessage}")
+            } finally {
+                _isAnalyzingStorage.value = false
+            }
+        }
+    }
+
+    fun cleanEmptyFolders(folders: List<File>) {
+        viewModelScope.launch {
+            val count = storageAnalysisRepository.cleanEmptyFolders(folders)
+            _userMessage.emit("Removed $count empty folder(s)")
+            analyzeStorage()
+        }
+    }
+
+    fun scanDuplicates() {
+        viewModelScope.launch {
+            _isScanningDuplicates.value = true
+            try {
+                _duplicateGroups.value = duplicateFinderRepository.findDuplicates(getApplication())
+            } catch (e: Exception) {
+                _userMessage.emit("Duplicate scan failed: ${e.localizedMessage}")
+            } finally {
+                _isScanningDuplicates.value = false
+            }
+        }
+    }
+
+    fun deleteDuplicateFiles(files: List<FileItem>) {
+        viewModelScope.launch {
+            val fileList = files.map { it.file }
+            if (_trashEnabled.value) {
+                trashRepository.moveToTrash(fileList)
+                    .onSuccess {
+                        _userMessage.emit("Moved ${files.size} duplicate(s) to Trash")
+                        loadTrashItems()
+                    }
+                    .onFailure {
+                        _userMessage.emit("Failed to move to Trash: ${it.localizedMessage}")
+                    }
+            } else {
+                var deleted = 0
+                for (f in fileList) {
+                    if (f.delete()) deleted++
+                }
+                _userMessage.emit("Permanently deleted $deleted duplicate(s)")
+            }
+            scanDuplicates()
+            refreshCurrentDirectory()
+        }
     }
 }

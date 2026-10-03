@@ -154,4 +154,6 @@
     <string name="uncompressed_size">حجم پس از استخراج: %1$s</string>
     <string name="compressed_size">حجم فشرده: %1$s</string>
     <string name="and_more_files">…و %1$d فایل دیگر</string>
+    <string name="advanced_features">قابلیت‌های پیشرفته</string>
+    <string name="advanced_features_subtitle">ابزارها و امکانات ویژه</string>
 </resources>

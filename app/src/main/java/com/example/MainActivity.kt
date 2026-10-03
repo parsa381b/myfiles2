@@ -73,6 +73,7 @@ import com.example.ui.components.SettingsDialog
 import com.example.ui.components.SortDialog
 import com.example.ui.components.StorageAccessRationaleDialog
 import com.example.ui.components.TextInputDialog
+import com.example.ui.screens.AdvancedFeaturesScreen
 import com.example.ui.screens.BrowserScreen
 import com.example.ui.screens.CategoryFilesScreen
 import com.example.ui.screens.HomeScreen
@@ -198,9 +199,14 @@ private fun MainContent(viewModel: FileViewModel) {
     val activeCategory by viewModel.activeCategory.collectAsStateWithLifecycle()
     val categoryFiles by viewModel.categoryFiles.collectAsStateWithLifecycle()
     val isCategoryLoading by viewModel.isCategoryLoading.collectAsStateWithLifecycle()
+    val storageAnalysis by viewModel.storageAnalysis.collectAsStateWithLifecycle()
+    val isAnalyzingStorage by viewModel.isAnalyzingStorage.collectAsStateWithLifecycle()
+    val duplicateGroups by viewModel.duplicateGroups.collectAsStateWithLifecycle()
+    val isScanningDuplicates by viewModel.isScanningDuplicates.collectAsStateWithLifecycle()
 
     var isSearchActive by remember { mutableStateOf(false) }
     var isTrashOpen by remember { mutableStateOf(false) }
+    var isAdvancedFeaturesOpen by remember { mutableStateOf(false) }
     var showRationaleDialog by rememberSaveable { mutableStateOf(!hasPermission) }
     var showCreateFolderDialog by remember { mutableStateOf(false) }
     var showRenameDialog by remember { mutableStateOf(false) }
@@ -243,6 +249,8 @@ private fun MainContent(viewModel: FileViewModel) {
             activeViewer = null
         } else if (isTrashOpen) {
             isTrashOpen = false
+        } else if (isAdvancedFeaturesOpen) {
+            isAdvancedFeaturesOpen = false
         } else if (activeCategory != null) {
             viewModel.closeCategory()
         } else if (isSearchActive || searchQuery.isNotEmpty()) {
@@ -260,7 +268,7 @@ private fun MainContent(viewModel: FileViewModel) {
 
     Scaffold(
         topBar = {
-            if (!isTrashOpen) {
+            if (!isTrashOpen && !isAdvancedFeaturesOpen) {
                 CenterAlignedTopAppBar(
                     title = {
                         if (isSearchActive) {
@@ -428,6 +436,29 @@ private fun MainContent(viewModel: FileViewModel) {
                     onEmptyTrash = { viewModel.emptyTrash() },
                     onNavigateBack = { isTrashOpen = false }
                 )
+            } else if (isAdvancedFeaturesOpen) {
+                AdvancedFeaturesScreen(
+                    storageAnalysis = storageAnalysis,
+                    isAnalyzingStorage = isAnalyzingStorage,
+                    onAnalyzeStorage = { viewModel.analyzeStorage() },
+                    onCleanEmptyFolders = { viewModel.cleanEmptyFolders(it) },
+                    duplicateGroups = duplicateGroups,
+                    isScanningDuplicates = isScanningDuplicates,
+                    onScanDuplicates = { viewModel.scanDuplicates() },
+                    onDeleteDuplicates = { viewModel.deleteDuplicateFiles(it) },
+                    onOpenFile = { file ->
+                        val viewer = FileUtils.getViewerForFile(file)
+                        if (viewer != null) {
+                            activeViewer = viewer
+                        } else {
+                            FileUtils.openFile(context, file)
+                        }
+                    },
+                    onDeleteFile = { item ->
+                        viewModel.deleteDuplicateFiles(listOf(item))
+                    },
+                    onNavigateBack = { isAdvancedFeaturesOpen = false }
+                )
             } else if (activeCategory != null) {
                 CategoryFilesScreen(
                     category = activeCategory!!,
@@ -486,7 +517,8 @@ private fun MainContent(viewModel: FileViewModel) {
                         onGrantPermission = { showRationaleDialog = true },
                         onSelectStorage = { viewModel.navigateTo(it) },
                         onCategoryClick = { viewModel.openCategory(it) },
-                        onOpenTrash = { isTrashOpen = true }
+                        onOpenTrash = { isTrashOpen = true },
+                        onOpenAdvancedFeatures = { isAdvancedFeaturesOpen = true }
                     )
                 }
             } else {

@@ -17,6 +17,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.CreateNewFolder
+import androidx.compose.material.icons.filled.Deselect
 import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
@@ -140,9 +141,12 @@ fun BrowserScreen(
                 if (files.isEmpty()) {
                     EmptyFolderView()
                 } else {
+                    val isAllSelected = files.isNotEmpty() && files.all { it in selectedItems }
+
                     BrowserToolbar(
                         count = files.size,
                         selectedCount = selectedItems.size,
+                        isAllSelected = isAllSelected,
                         onCreateFolder = onCreateFolder,
                         onSelectAll = { onSelectAll(files) },
                         onOpenSort = onOpenSort
@@ -166,6 +170,7 @@ fun BrowserScreen(
 private fun BrowserToolbar(
     count: Int,
     selectedCount: Int,
+    isAllSelected: Boolean,
     onCreateFolder: () -> Unit,
     onSelectAll: () -> Unit,
     onOpenSort: () -> Unit
@@ -222,8 +227,9 @@ private fun BrowserToolbar(
                     .testTag("button_select_all")
             ) {
                 Icon(
-                    imageVector = Icons.Default.SelectAll,
-                    contentDescription = stringResource(R.string.select_all),
+                    imageVector = if (isAllSelected) Icons.Default.Deselect else Icons.Default.SelectAll,
+                    contentDescription = if (isAllSelected) "Deselect All" else stringResource(R.string.select_all),
+                    tint = if (isAllSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(20.dp)
                 )
             }

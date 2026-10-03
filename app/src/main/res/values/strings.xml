@@ -153,4 +153,6 @@
     <string name="uncompressed_size">Uncompressed: %1$s</string>
     <string name="compressed_size">Compressed: %1$s</string>
     <string name="and_more_files">…and %1$d more items</string>
+    <string name="advanced_features">Advanced Features</string>
+    <string name="advanced_features_subtitle">Tools &amp; experimental capabilities</string>
 </resources>

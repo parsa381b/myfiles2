@@ -20,6 +20,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.AudioFile
 import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Deselect
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.Image
@@ -180,13 +181,18 @@ fun CategoryFilesScreen(
                         )
                     }
 
+                    val areAllSelected = !displayFiles.isNullOrEmpty() && displayFiles.all { it in selectedItems }
+
                     IconButton(
                         onClick = { onSelectAll(displayFiles) },
-                        modifier = Modifier.size(36.dp)
+                        modifier = Modifier
+                            .size(36.dp)
+                            .testTag("category_button_select_all")
                     ) {
                         Icon(
-                            imageVector = Icons.Default.SelectAll,
-                            contentDescription = stringResource(R.string.select_all),
+                            imageVector = if (areAllSelected) Icons.Default.Deselect else Icons.Default.SelectAll,
+                            contentDescription = if (areAllSelected) "Deselect All" else stringResource(R.string.select_all),
+                            tint = if (areAllSelected) categoryColor else MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(20.dp)
                         )
                     }

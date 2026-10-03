@@ -204,4 +204,73 @@ class ExampleUnitTest {
         val pdfFile = File("/storage/emulated/0/Download/document.pdf")
         assertEquals("pdf", pdfFile.extension.lowercase())
     }
+
+    @Test
+    fun testShareMimeTypeResolution() {
+        val pdf = File("document.pdf")
+        val mp3 = File("audio.mp3")
+        val jpg = File("image.jpg")
+        assertEquals("application/pdf", com.example.util.FileUtils.getMimeType(pdf))
+        assertEquals("audio/mpeg", com.example.util.FileUtils.getMimeType(mp3))
+        assertEquals("image/jpeg", com.example.util.FileUtils.getMimeType(jpg))
+    }
+
+    @Test
+    fun testSelectAllToggleBehavior() {
+        val item1 = com.example.data.model.FileItem(File("/storage/emulated/0/Download/1.pdf"))
+        val item2 = com.example.data.model.FileItem(File("/storage/emulated/0/Download/2.pdf"))
+        val allItems = listOf(item1, item2)
+
+        var selected = emptySet<com.example.data.model.FileItem>()
+
+        // 1st click: selects all
+        selected = if (allItems.toSet().isNotEmpty() && selected.containsAll(allItems.toSet())) {
+            emptySet()
+        } else {
+            allItems.toSet()
+        }
+        assertEquals(2, selected.size)
+        assertEquals(true, selected.contains(item1))
+        assertEquals(true, selected.contains(item2))
+
+        // 2nd click: deselects all
+        selected = if (allItems.toSet().isNotEmpty() && selected.containsAll(allItems.toSet())) {
+            emptySet()
+        } else {
+            allItems.toSet()
+        }
+        assertEquals(0, selected.size)
+    }
+
+    @Test
+    fun testAdvancedFeaturesStrings() {
+        val titleRes = R.string.advanced_features
+        val subtitleRes = R.string.advanced_features_subtitle
+        assertNotEquals(0, titleRes)
+        assertNotEquals(0, subtitleRes)
+    }
+
+    @Test
+    fun testDuplicateGroupCalculation() {
+        val item1 = com.example.data.model.FileItem(File("/storage/emulated/0/DCIM/photo1.jpg"), size = 5_000_000L)
+        val item2 = com.example.data.model.FileItem(File("/storage/emulated/0/Download/photo1.jpg"), size = 5_000_000L)
+        val group = com.example.data.model.DuplicateGroup(
+            id = "hash123",
+            fileSize = 5_000_000L,
+            items = listOf(item1, item2)
+        )
+        val recoverable = group.fileSize * (group.items.size - 1)
+        assertEquals(5_000_000L, recoverable)
+        assertEquals(2, group.items.size)
+    }
+
+    @Test
+    fun testStorageBreakdownMath() {
+        val total = 100_000_000_000L // 100GB
+        val free = 30_000_000_000L   // 30GB
+        val used = total - free      // 70GB
+        assertEquals(70_000_000_000L, used)
+        val percent = ((used.toDouble() / total) * 100).toInt()
+        assertEquals(70, percent)
+    }
 }

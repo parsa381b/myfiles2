@@ -26,6 +26,7 @@ import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.SdCard
 import androidx.compose.material.icons.filled.Smartphone
+import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.Usb
 import androidx.compose.material.icons.filled.VideoFile
 import androidx.compose.material3.Icon
@@ -63,6 +64,7 @@ fun HomeScreen(
     onSelectStorage: (File) -> Unit,
     onCategoryClick: (FileCategory) -> Unit,
     onOpenTrash: () -> Unit,
+    onOpenAdvancedFeatures: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     LazyColumn(
@@ -75,7 +77,7 @@ fun HomeScreen(
         if (!hasStoragePermission) {
             item {
                 PermissionBanner(onGrantClick = onGrantPermission)
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(16.dp))
             }
         }
 
@@ -114,25 +116,93 @@ fun HomeScreen(
             Spacer(modifier = Modifier.height(12.dp))
         }
 
-        if (trashEnabled) {
-            item {
-                Spacer(modifier = Modifier.height(12.dp))
-                Text(
-                    text = stringResource(R.string.utilities),
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onBackground,
-                    modifier = Modifier.padding(start = 4.dp, bottom = 12.dp)
-                )
-            }
+        item {
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                text = stringResource(R.string.utilities),
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onBackground,
+                modifier = Modifier.padding(start = 4.dp, bottom = 12.dp)
+            )
+        }
 
+        if (trashEnabled) {
             item {
                 TrashShortcutCard(
                     trashCount = trashCount,
                     onClick = onOpenTrash,
                     modifier = Modifier.testTag("trash_shortcut_card")
                 )
+                Spacer(modifier = Modifier.height(10.dp))
             }
+        }
+
+        item {
+            AdvancedFeaturesShortcutCard(
+                onClick = onOpenAdvancedFeatures,
+                modifier = Modifier.testTag("advanced_features_shortcut_card")
+            )
+        }
+    }
+}
+
+@Composable
+private fun AdvancedFeaturesShortcutCard(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        shape = RoundedCornerShape(20.dp),
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 2.dp,
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(20.dp))
+            .clickable(onClick = onClick)
+    ) {
+        Row(
+            modifier = Modifier.padding(18.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(Color(0xFF8B5CF6).copy(alpha = 0.14f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Tune,
+                    contentDescription = null,
+                    tint = Color(0xFF8B5CF6),
+                    modifier = Modifier.size(26.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = stringResource(R.string.advanced_features),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = stringResource(R.string.advanced_features_subtitle),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                modifier = Modifier.size(16.dp)
+            )
         }
     }
 }
