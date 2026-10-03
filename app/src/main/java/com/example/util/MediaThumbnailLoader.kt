@@ -84,6 +84,18 @@ object MediaThumbnailLoader {
         }
 
         try {
+            val ext = file.extension.lowercase()
+            if (ext == "xapk" || ext == "apks") {
+                val details = PackageInstallerHelper.parsePackageDetails(context, file)
+                val bmp = details?.icon
+                if (bmp != null) {
+                    synchronized(memoryCache) {
+                        memoryCache.put(path, bmp)
+                    }
+                    return@withContext bmp
+                }
+            }
+
             val pm = context.packageManager
             val packageInfo = pm.getPackageArchiveInfo(path, 0)
             val appInfo = packageInfo?.applicationInfo
@@ -111,7 +123,7 @@ object MediaThumbnailLoader {
         }
     }
 
-    private fun drawableToBitmap(drawable: Drawable): Bitmap? {
+    fun drawableToBitmap(drawable: Drawable): Bitmap? {
         if (drawable is BitmapDrawable && drawable.bitmap != null) {
             return drawable.bitmap
         }

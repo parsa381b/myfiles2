@@ -115,4 +115,27 @@
     <string name="confirm_move_to_trash">Move %1$d item(s) to Trash? You can restore them anytime.</string>
     <string name="confirm_delete_permanent">Permanently delete %1$d item(s)? This cannot be undone.</string>
     <string name="utilities">Utilities</string>
+    <string name="install_package">Install package</string>
+    <string name="install">Install</string>
+    <string name="installing">Installing…</string>
+    <string name="package_name">Package name</string>
+    <string name="version">Version</string>
+    <string name="splits_count">%1$d split APKs</string>
+    <string name="includes_obb">Includes OBB data</string>
+    <string name="permission_install_unknown_title">Permission required</string>
+    <string name="permission_install_unknown_desc">To install APK, XAPK, and APKS packages, please allow this app to install unknown apps in system Settings.</string>
+    <string name="open_settings">Open Settings</string>
+    <string name="ready_to_install">Ready to install</string>
+    <string name="storage_access_welcome_title">Welcome to My Files</string>
+    <string name="storage_access_welcome_subtitle">Full storage access is required to view and manage your files</string>
+    <string name="storage_reason_browse_title">Browse &amp; Organize Storage</string>
+    <string name="storage_reason_browse_desc">Explore internal memory, SD cards, and USB drives. Create, copy, move, and rename files.</string>
+    <string name="storage_reason_media_title">Built-in Media Players</string>
+    <string name="storage_reason_media_desc">Play HD videos, listen to music, view images, and read PDF and text documents directly.</string>
+    <string name="storage_reason_apps_title">Install APK &amp; XAPK Packages</string>
+    <string name="storage_reason_apps_desc">Install applications and unpack split APKs and OBB game data seamlessly.</string>
+    <string name="storage_reason_privacy_title">100% Private &amp; Local</string>
+    <string name="storage_reason_privacy_desc">Your files remain strictly offline on your device. No cloud sync, telemetry, or remote uploads.</string>
+    <string name="storage_access_how_to_grant">On the next screen, toggle on “Allow access to manage all files” for My Files.</string>
+    <string name="not_now">Not now</string>
 </resources>

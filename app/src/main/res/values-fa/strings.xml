@@ -116,4 +116,27 @@
     <string name="confirm_move_to_trash">آیا %1$d مورد به سطل زباله منتقل شود؟ هر زمان می‌توانید آنها را بازگردانید.</string>
     <string name="confirm_delete_permanent">آیا %1$d مورد به طور دائم حذف شود؟ این عملیات قابل بازگشت نیست.</string>
     <string name="utilities">امکانات</string>
+    <string name="install_package">نصب برنامه</string>
+    <string name="install">نصب</string>
+    <string name="installing">در حال نصب…</string>
+    <string name="package_name">نام بسته</string>
+    <string name="version">نسخه</string>
+    <string name="splits_count">%1$d فایل بسته جانبی</string>
+    <string name="includes_obb">شامل دیتای OBB</string>
+    <string name="permission_install_unknown_title">نیاز به مجوز نصب</string>
+    <string name="permission_install_unknown_desc">برای نصب فایل‌های APK، XAPK و APKS لطفاً در تنظیمات سیستم، مجوز نصب برنامه‌های ناشناخته را فعال کنید.</string>
+    <string name="open_settings">باز کردن تنظیمات</string>
+    <string name="ready_to_install">آماده نصب</string>
+    <string name="storage_access_welcome_title">خوش آمدید به مای فایلز</string>
+    <string name="storage_access_welcome_subtitle">برای مشاهده و مدیریت فایل‌ها دسترسی به حافظه دستگاه نیاز است</string>
+    <string name="storage_reason_browse_title">مرور و مدیریت حافظه</string>
+    <string name="storage_reason_browse_desc">مشاهده حافظه داخلی، کارت حافظه و فلش USB. ایجاد، کپی، انتقال و تغییر نام فایل‌ها.</string>
+    <string name="storage_reason_media_title">پخش‌کننده‌های رسانه داخلی</string>
+    <string name="storage_reason_media_desc">پخش مستقیم ویدیوهای HD، موسیقی، تصاویر، اسناد PDF و فایل‌های متنی بدون برنامه جانبی.</string>
+    <string name="storage_reason_apps_title">نصب بسته‌های APK و XAPK</string>
+    <string name="storage_reason_apps_desc">نصب آسان برنامه‌ها و استخراج خودکار فایل‌های دیتای OBB و بسته‌های جانبی APKS.</string>
+    <string name="storage_reason_privacy_title">کاملاً محرمانه و آفلاین</string>
+    <string name="storage_reason_privacy_desc">اطلاعات شما کاملاً روی دستگاه باقی می‌ماند و هیچ فایلی به سرور خارجی ارسال نمی‌شود.</string>
+    <string name="storage_access_how_to_grant">در صفحه بعد، گزینه «مجوز مدیریت همه فایل‌ها» را برای برنامه فعال کنید.</string>
+    <string name="not_now">بعداً</string>
 </resources>

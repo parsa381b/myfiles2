@@ -13,13 +13,15 @@ A fast, lightweight, and responsive Android file manager styled after **Samsung 
   - Interactive horizontal breadcrumbs for instant directory jumping.
   - Floating bottom action dock for multi-selection and clipboard operations.
   - **Dynamic File Thumbnails**: Embedded cover art for audio files (MP3, FLAC, M4A, OGG) and live application icons extracted from APK packages.
+  - **First-Time Storage Access Rationale Modal**: Prominently guides users upon first launching the app, clearly detailing why All-Files access is required (file organization, media playback, package installation, offline privacy guarantee).
+  - **In-App Package Installer (APK, XAPK, APKS)**: Native installation support for standalone APKs, split APK bundles (APKS), and multi-part XAPKs with automatic OBB expansion extraction, package details dialog, and seamless unknown-sources permission guidance.
   - **USB & External Storage Support**: Full detection and browsing for USB OTG flash drives and micro-SD cards with live hotplug listener and cross-device copy/move chips.
   - **Trash & Recycle Bin**: Full Trash system with a settings toggle ON/OFF, 30-day retention, Home screen shortcut, batch Restore, and Empty Trash.
   - **Dark Mode**: System, Light, and Dark mode theme support with high-contrast surfaces.
   - **Persian Language (فارسی)**: Full native Persian translations with authentic Right-to-Left (RTL) layout support and an in-app language switcher.
 - 🎬 **Built-in Media Viewers**:
   - **Image Viewer**: High-res viewing with pinch-to-zoom (up to 6x), double-tap zoom toggle, panning, 90° rotation, and sharing (JPEG, PNG, GIF, WebP, BMP, HEIC, SVG).
-  - **Video Player**: Native hardware-accelerated playback with play/pause, scrub slider, 10s forward/rewind, and full-screen controls (MP4, MKV, AVI, MOV, WebM, 3GP).
+  - **Video Player**: Native hardware-accelerated playback with play/pause, scrub slider, 10s forward/rewind, full-screen controls, and proper edge-to-edge window insets padding (`navigationBarsPadding()` / `statusBarsPadding()`) preventing bottom control clipping (MP4, MKV, AVI, MOV, WebM, 3GP).
   - **Audio Player**: One UI music player card with album art, scrub slider, repeat/loop mode, 10s skip, and background audio support (MP3, WAV, FLAC, OGG, M4A, AAC).
   - **PDF Viewer**: Native zero-dependency document renderer using Android's `PdfRenderer` with page navigation (Next/Previous, Page X of Y) and smooth zoom.
   - **Text Editor**: Syntax-highlighted code editor for Kotlin, Java, Python, JS, TS, HTML, XML, JSON, SQL, Bash, Markdown, etc., with line numbers, Edit/View modes, and in-place file saving.

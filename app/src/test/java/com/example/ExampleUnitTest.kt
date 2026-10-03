@@ -127,4 +127,26 @@ class ExampleUnitTest {
         assertEquals(com.example.data.model.StorageType.USB_DRIVE, usb.type)
         assertEquals(false, usb.isPrimary)
     }
+
+    @Test
+    fun testPackageFormat() {
+        assertEquals("APK", com.example.util.PackageFormat.APK.label)
+        assertEquals("XAPK", com.example.util.PackageFormat.XAPK.label)
+        assertEquals("APKS", com.example.util.PackageFormat.APKS.label)
+
+        val pkg = com.example.util.PackageDetails(
+            file = File("/test.xapk"),
+            appName = "Test App",
+            packageName = "com.test.app",
+            versionName = "1.0.0",
+            versionCode = 10,
+            icon = null,
+            format = com.example.util.PackageFormat.XAPK,
+            totalSizeBytes = 1024L,
+            splitApkNames = listOf("base.apk", "config.arm64_v8a.apk"),
+            hasObb = true
+        )
+        assertEquals(true, pkg.hasObb)
+        assertEquals(2, pkg.splitApkNames.size)
+    }
 }

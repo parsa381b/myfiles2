@@ -21,6 +21,7 @@ sealed interface ActiveViewer {
     data class Audio(val file: File) : ActiveViewer
     data class Pdf(val file: File) : ActiveViewer
     data class Text(val file: File) : ActiveViewer
+    data class PackageInstaller(val file: File) : ActiveViewer
 }
 
 object FileUtils {
@@ -46,7 +47,7 @@ object FileUtils {
         val mime = MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext)
         if (mime != null) return mime
         return when (ext) {
-            "apk" -> "application/vnd.android.package-archive"
+            "apk", "xapk", "apks" -> "application/vnd.android.package-archive"
             "pdf" -> "application/pdf"
             "zip" -> "application/zip"
             "rar" -> "application/x-rar-compressed"
@@ -62,6 +63,7 @@ object FileUtils {
         if (file.isDirectory) return null
         val ext = file.extension.lowercase(Locale.ROOT)
         return when (ext) {
+            "apk", "xapk", "apks" -> ActiveViewer.PackageInstaller(file)
             "jpg", "jpeg", "png", "webp", "gif", "bmp", "heic", "svg" -> ActiveViewer.Image(file)
             "mp4", "mkv", "avi", "mov", "webm", "3gp", "flv", "ts" -> ActiveViewer.Video(file)
             "mp3", "wav", "flac", "ogg", "m4a", "aac", "wma", "opus" -> ActiveViewer.Audio(file)

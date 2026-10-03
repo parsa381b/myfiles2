@@ -13,6 +13,9 @@
         android:maxSdkVersion="29"
         tools:ignore="ScopedStorage" />
 
+    <!-- Request install packages permission for APK, XAPK, and APKS installations -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -45,6 +48,10 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths" />
         </provider>
+
+        <receiver
+            android:name=".util.PackageInstallReceiver"
+            android:exported="false" />
     </application>
 
 </manifest>

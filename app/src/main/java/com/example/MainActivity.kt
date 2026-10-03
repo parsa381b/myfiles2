@@ -42,6 +42,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -62,6 +63,7 @@ import com.example.ui.components.OperationBottomBar
 import com.example.ui.components.PasteBottomBar
 import com.example.ui.components.SettingsDialog
 import com.example.ui.components.SortDialog
+import com.example.ui.components.StorageAccessRationaleDialog
 import com.example.ui.components.TextInputDialog
 import com.example.ui.screens.BrowserScreen
 import com.example.ui.screens.HomeScreen
@@ -70,6 +72,7 @@ import com.example.ui.theme.MyFilesTheme
 import com.example.ui.viewmodel.FileViewModel
 import com.example.ui.viewers.AudioPlayerDialog
 import com.example.ui.viewers.ImageViewerDialog
+import com.example.ui.viewers.PackageInstallerDialog
 import com.example.ui.viewers.PdfViewerDialog
 import com.example.ui.viewers.TextEditorDialog
 import com.example.ui.viewers.VideoPlayerDialog
@@ -182,6 +185,7 @@ private fun MainContent(viewModel: FileViewModel) {
 
     var isSearchActive by remember { mutableStateOf(false) }
     var isTrashOpen by remember { mutableStateOf(false) }
+    var showRationaleDialog by rememberSaveable { mutableStateOf(!hasPermission) }
     var showCreateFolderDialog by remember { mutableStateOf(false) }
     var showRenameDialog by remember { mutableStateOf(false) }
     var showDeleteConfirmDialog by remember { mutableStateOf(false) }
@@ -194,6 +198,12 @@ private fun MainContent(viewModel: FileViewModel) {
     LaunchedEffect(Unit) {
         viewModel.userMessage.collect { msg ->
             Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    LaunchedEffect(hasPermission) {
+        if (hasPermission) {
+            showRationaleDialog = false
         }
     }
 
@@ -352,7 +362,7 @@ private fun MainContent(viewModel: FileViewModel) {
                     hasStoragePermission = hasPermission,
                     trashEnabled = trashEnabled,
                     trashCount = trashItems.size,
-                    onGrantPermission = { FileUtils.openPermissionSettings(context) },
+                    onGrantPermission = { showRationaleDialog = true },
                     onSelectStorage = { viewModel.navigateTo(it) },
                     onCategoryClick = { viewModel.openCategory(it) },
                     onOpenTrash = { isTrashOpen = true }
@@ -451,6 +461,17 @@ private fun MainContent(viewModel: FileViewModel) {
             )
         }
 
+        if (showRationaleDialog && !hasPermission) {
+            StorageAccessRationaleDialog(
+                onGrantAccess = {
+                    FileUtils.openPermissionSettings(context)
+                },
+                onDismiss = {
+                    showRationaleDialog = false
+                }
+            )
+        }
+
         detailsTargetItem?.let { item ->
             FileDetailsDialog(
                 item = item,
@@ -489,6 +510,10 @@ private fun MainContent(viewModel: FileViewModel) {
             is ActiveViewer.Text -> TextEditorDialog(
                 file = viewer.file,
                 onSaveFile = { f, content -> viewModel.saveTextFile(f, content) },
+                onDismiss = { activeViewer = null }
+            )
+            is ActiveViewer.PackageInstaller -> PackageInstallerDialog(
+                file = viewer.file,
                 onDismiss = { activeViewer = null }
             )
             null -> Unit
