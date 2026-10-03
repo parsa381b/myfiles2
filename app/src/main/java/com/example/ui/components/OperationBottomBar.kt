@@ -16,6 +16,7 @@ import androidx.compose.material.icons.filled.DriveFileMove
 import androidx.compose.material.icons.filled.DriveFileRenameOutline
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Unarchive
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -38,6 +39,8 @@ import com.example.data.model.OperationType
 @Composable
 fun OperationBottomBar(
     selectedCount: Int,
+    canExtract: Boolean = false,
+    onExtract: () -> Unit = {},
     onCopy: () -> Unit,
     onMove: () -> Unit,
     onDelete: () -> Unit,
@@ -62,6 +65,14 @@ fun OperationBottomBar(
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
         ) {
+            if (canExtract) {
+                BottomBarActionItem(
+                    icon = Icons.Default.Unarchive,
+                    label = stringResource(R.string.extract),
+                    onClick = onExtract,
+                    testTag = "action_extract"
+                )
+            }
             BottomBarActionItem(
                 icon = Icons.Default.ContentCopy,
                 label = stringResource(R.string.copy),

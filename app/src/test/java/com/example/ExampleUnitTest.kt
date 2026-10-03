@@ -161,4 +161,41 @@ class ExampleUnitTest {
         val hiddenFolder = com.example.data.model.FileItem(file = File("/storage/emulated/0/.trash"))
         assertEquals(true, hiddenFolder.isHidden)
     }
+
+    @Test
+    fun testArchiveFormats() {
+        val zipFile = File("/storage/emulated/0/Download/bundle.zip")
+        assertEquals(com.example.util.ArchiveFormat.ZIP, com.example.util.ArchiveFormat.fromFile(zipFile))
+
+        val rarFile = File("/storage/emulated/0/Download/archive.rar")
+        assertEquals(com.example.util.ArchiveFormat.RAR, com.example.util.ArchiveFormat.fromFile(rarFile))
+
+        val sevenZFile = File("/storage/emulated/0/Download/backup.7z")
+        assertEquals(com.example.util.ArchiveFormat.SEVEN_Z, com.example.util.ArchiveFormat.fromFile(sevenZFile))
+
+        val pdfFile = File("/storage/emulated/0/Download/document.pdf")
+        assertEquals(null, com.example.util.ArchiveFormat.fromFile(pdfFile))
+    }
+
+    @Test
+    fun testSearchDisplayFormatting() {
+        val testFile = File("/storage/emulated/0/Download/invoice.pdf")
+        val item = com.example.data.model.FileItem(
+            file = testFile,
+            size = 2048576L
+        )
+        assertEquals("/storage/emulated/0/Download", item.file.parent)
+        val formattedSize = com.example.util.FileUtils.formatFileSize(item.size)
+        assertEquals("2.0 MB", formattedSize)
+    }
+
+    @Test
+    fun testCategoryExtensions() {
+        val audioExts = setOf("mp3", "wav", "flac", "ogg", "m4a", "aac", "wma", "opus")
+        val musicFile = File("/storage/emulated/0/Download/song.mp3")
+        assertEquals(true, audioExts.contains(musicFile.extension.lowercase()))
+
+        val videoFile = File("/storage/emulated/0/DCIM/Camera/vid.mp4")
+        assertEquals(false, audioExts.contains(videoFile.extension.lowercase()))
+    }
 }

@@ -5,6 +5,7 @@ import android.os.Build
 import android.os.Environment
 import android.os.StatFs
 import android.os.storage.StorageManager
+import android.provider.MediaStore
 import androidx.core.content.ContextCompat
 import com.example.data.model.FileCategory
 import com.example.data.model.FileItem
@@ -252,53 +253,360 @@ class FileRepository {
     }
 
     suspend fun searchFiles(
-        rootDir: File,
+        context: Context? = null,
+        rootDir: File? = null,
         query: String,
         showHiddenFiles: Boolean = false,
-        maxResults: Int = 100
+        maxResults: Int = 150
     ): List<FileItem> = withContext(Dispatchers.IO) {
-        val results = mutableListOf<FileItem>()
+        val results = ArrayList<FileItem>()
+        val seenPaths = HashSet<String>()
         val lowercaseQuery = query.lowercase().trim()
-        if (lowercaseQuery.isEmpty() || !rootDir.canRead()) return@withContext emptyList()
+        if (lowercaseQuery.isEmpty()) return@withContext emptyList()
 
-        fun searchRecursive(dir: File, currentDepth: Int) {
-            if (currentDepth > 4 || results.size >= maxResults) return
-            val list = dir.listFiles() ?: return
-            for (f in list) {
-                if (results.size >= maxResults) break
-                val isHidden = f.name.startsWith(".") || f.isHidden
-                if (!showHiddenFiles && isHidden) continue
+        // 1. Lightning-fast MediaStore indexed SQLite query (returns in 10-30ms)
+        if (context != null) {
+            try {
+                val uri = MediaStore.Files.getContentUri("external")
+                val projection = arrayOf(
+                    MediaStore.Files.FileColumns.DATA,
+                    MediaStore.Files.FileColumns.DISPLAY_NAME,
+                    MediaStore.Files.FileColumns.SIZE,
+                    MediaStore.Files.FileColumns.DATE_MODIFIED
+                )
+                val rootPrefix = rootDir?.absolutePath
 
-                if (f.name.lowercase().contains(lowercaseQuery)) {
-                    val isDir = f.isDirectory
-                    val count = if (isDir) {
-                        val subFiles = f.listFiles()
-                        if (showHiddenFiles) subFiles?.size ?: 0 else subFiles?.count { !it.name.startsWith(".") && !it.isHidden } ?: 0
-                    } else 0
-                    results.add(
-                        FileItem(
-                            file = f,
-                            name = f.name,
-                            path = f.absolutePath,
-                            isDirectory = isDir,
-                            size = if (isDir) 0L else f.length(),
-                            lastModified = f.lastModified(),
-                            extension = if (isDir) "" else f.extension.lowercase(),
-                            subItemCount = count,
-                            isHidden = isHidden
-                        )
-                    )
+                val selection = if (rootPrefix != null) {
+                    if (showHiddenFiles) {
+                        "${MediaStore.Files.FileColumns.DATA} LIKE ? AND ${MediaStore.Files.FileColumns.DISPLAY_NAME} LIKE ?"
+                    } else {
+                        "${MediaStore.Files.FileColumns.DATA} LIKE ? AND ${MediaStore.Files.FileColumns.DISPLAY_NAME} LIKE ? AND ${MediaStore.Files.FileColumns.DISPLAY_NAME} NOT LIKE '.%'"
+                    }
+                } else {
+                    if (showHiddenFiles) {
+                        "${MediaStore.Files.FileColumns.DISPLAY_NAME} LIKE ?"
+                    } else {
+                        "${MediaStore.Files.FileColumns.DISPLAY_NAME} LIKE ? AND ${MediaStore.Files.FileColumns.DISPLAY_NAME} NOT LIKE '.%'"
+                    }
                 }
-                if (f.isDirectory) {
-                    if (showHiddenFiles || !isHidden) {
-                        searchRecursive(f, currentDepth + 1)
+
+                val selectionArgs = if (rootPrefix != null) {
+                    arrayOf("$rootPrefix/%", "%$lowercaseQuery%")
+                } else {
+                    arrayOf("%$lowercaseQuery%")
+                }
+
+                context.contentResolver.query(
+                    uri,
+                    projection,
+                    selection,
+                    selectionArgs,
+                    "${MediaStore.Files.FileColumns.DATE_MODIFIED} DESC"
+                )?.use { cursor ->
+                    val dataCol = cursor.getColumnIndex(MediaStore.Files.FileColumns.DATA)
+                    val nameCol = cursor.getColumnIndex(MediaStore.Files.FileColumns.DISPLAY_NAME)
+                    val sizeCol = cursor.getColumnIndex(MediaStore.Files.FileColumns.SIZE)
+                    val dateCol = cursor.getColumnIndex(MediaStore.Files.FileColumns.DATE_MODIFIED)
+
+                    while (cursor.moveToNext() && results.size < maxResults) {
+                        val path = if (dataCol >= 0) cursor.getString(dataCol) else null ?: continue
+                        val file = File(path)
+                        if (!file.exists()) continue
+                        val canonical = try { file.canonicalPath } catch (_: Exception) { file.absolutePath }
+                        if (!seenPaths.add(canonical)) continue
+
+                        val name = if (nameCol >= 0) cursor.getString(nameCol) else null ?: file.name
+                        val isDir = file.isDirectory
+                        val size = if (sizeCol >= 0) cursor.getLong(sizeCol) else if (isDir) 0L else file.length()
+                        val lastModified = if (dateCol >= 0) cursor.getLong(dateCol) * 1000L else file.lastModified()
+                        val isHidden = name.startsWith(".") || file.isHidden
+
+                        if (!showHiddenFiles && isHidden) continue
+
+                        results.add(
+                            FileItem(
+                                file = file,
+                                name = name,
+                                path = path,
+                                isDirectory = isDir,
+                                size = if (isDir) 0L else size,
+                                lastModified = lastModified,
+                                extension = if (isDir) "" else file.extension.lowercase(),
+                                subItemCount = 0,
+                                isHidden = isHidden
+                            )
+                        )
+                    }
+                }
+            } catch (_: Exception) {}
+        }
+
+        // 2. High-speed Iterative Breadth-First File System Search (for unindexed files, USB OTG, system folders)
+        if (results.size < maxResults) {
+            val rootsToScan = when {
+                rootDir != null && rootDir.exists() && rootDir.canRead() -> listOf(rootDir)
+                else -> {
+                    listOf(
+                        Environment.getExternalStorageDirectory(),
+                        File("/storage")
+                    ).filter { it.exists() && it.canRead() }
+                }
+            }
+
+            val queue = java.util.ArrayDeque<File>()
+            rootsToScan.forEach { queue.offer(it) }
+
+            var dirsVisited = 0
+            val maxDirsToVisit = 500
+
+            while (queue.isNotEmpty() && results.size < maxResults && dirsVisited < maxDirsToVisit) {
+                val dir = queue.poll() ?: break
+                dirsVisited++
+
+                val children = dir.listFiles() ?: continue
+                for (f in children) {
+                    if (results.size >= maxResults) break
+                    val isHidden = f.name.startsWith(".") || f.isHidden
+                    if (!showHiddenFiles && isHidden) continue
+
+                    if (f.name.lowercase().contains(lowercaseQuery)) {
+                        val canonical = try { f.canonicalPath } catch (_: Exception) { f.absolutePath }
+                        if (seenPaths.add(canonical)) {
+                            val isDir = f.isDirectory
+                            results.add(
+                                FileItem(
+                                    file = f,
+                                    name = f.name,
+                                    path = f.absolutePath,
+                                    isDirectory = isDir,
+                                    size = if (isDir) 0L else f.length(),
+                                    lastModified = f.lastModified(),
+                                    extension = if (isDir) "" else f.extension.lowercase(),
+                                    subItemCount = 0,
+                                    isHidden = isHidden
+                                )
+                            )
+                        }
+                    }
+
+                    if (f.isDirectory && f.canRead()) {
+                        queue.offer(f)
                     }
                 }
             }
         }
 
-        searchRecursive(rootDir, 0)
+        // Sort results: matches starting with query first, then folders, then newest
+        results.sortWith(
+            compareByDescending<FileItem> { it.name.lowercase().startsWith(lowercaseQuery) }
+                .thenByDescending { it.isDirectory }
+                .thenByDescending { it.lastModified }
+        )
+
         results
+    }
+
+    suspend fun getCategoryFiles(
+        context: Context,
+        category: FileCategory,
+        sortOption: SortOption = SortOption.DATE_DESC,
+        showHiddenFiles: Boolean = false
+    ): List<FileItem> = withContext(Dispatchers.IO) {
+        val results = ArrayList<FileItem>()
+        val seenPaths = HashSet<String>()
+
+        val extensions = when (category) {
+            FileCategory.AUDIO -> setOf("mp3", "wav", "flac", "ogg", "m4a", "aac", "wma", "opus", "amr", "mid", "midi")
+            FileCategory.IMAGES -> setOf("jpg", "jpeg", "png", "webp", "gif", "bmp", "heic", "svg")
+            FileCategory.VIDEOS -> setOf("mp4", "mkv", "avi", "mov", "webm", "3gp", "flv", "ts", "m4v")
+            FileCategory.DOCUMENTS -> setOf("pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "txt", "rtf", "odt", "ods", "odp", "csv", "epub")
+            FileCategory.INSTALLATION_FILES -> setOf("apk", "xapk", "apks")
+            FileCategory.DOWNLOADS -> emptySet()
+        }
+
+        // 1. Fast MediaStore query across entire device
+        try {
+            val uri = when (category) {
+                FileCategory.AUDIO -> MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
+                FileCategory.IMAGES -> MediaStore.Images.Media.EXTERNAL_CONTENT_URI
+                FileCategory.VIDEOS -> MediaStore.Video.Media.EXTERNAL_CONTENT_URI
+                else -> MediaStore.Files.getContentUri("external")
+            }
+
+            val projection = arrayOf(
+                MediaStore.MediaColumns.DATA,
+                MediaStore.MediaColumns.DISPLAY_NAME,
+                MediaStore.MediaColumns.SIZE,
+                MediaStore.MediaColumns.DATE_MODIFIED
+            )
+
+            val selection: String?
+            when (category) {
+                FileCategory.AUDIO, FileCategory.IMAGES, FileCategory.VIDEOS -> {
+                    selection = "${MediaStore.MediaColumns.SIZE} > 0"
+                }
+                FileCategory.DOCUMENTS -> {
+                    val clauses = extensions.map { "${MediaStore.Files.FileColumns.DATA} LIKE '%.${it}'" }
+                    selection = "(${clauses.joinToString(" OR ")}) AND ${MediaStore.Files.FileColumns.SIZE} > 0"
+                }
+                FileCategory.INSTALLATION_FILES -> {
+                    selection = "(${MediaStore.Files.FileColumns.DATA} LIKE '%.apk' OR ${MediaStore.Files.FileColumns.DATA} LIKE '%.xapk' OR ${MediaStore.Files.FileColumns.DATA} LIKE '%.apks') AND ${MediaStore.Files.FileColumns.SIZE} > 0"
+                }
+                FileCategory.DOWNLOADS -> {
+                    selection = "${MediaStore.Files.FileColumns.DATA} LIKE '%/Download/%' AND ${MediaStore.Files.FileColumns.SIZE} > 0"
+                }
+            }
+
+            context.contentResolver.query(
+                uri,
+                projection,
+                selection,
+                null,
+                "${MediaStore.MediaColumns.DATE_MODIFIED} DESC"
+            )?.use { cursor ->
+                val dataCol = cursor.getColumnIndex(MediaStore.MediaColumns.DATA)
+                val nameCol = cursor.getColumnIndex(MediaStore.MediaColumns.DISPLAY_NAME)
+                val sizeCol = cursor.getColumnIndex(MediaStore.MediaColumns.SIZE)
+                val dateCol = cursor.getColumnIndex(MediaStore.MediaColumns.DATE_MODIFIED)
+
+                while (cursor.moveToNext()) {
+                    val path = if (dataCol >= 0) cursor.getString(dataCol) else null ?: continue
+                    val file = File(path)
+                    if (!file.exists() || file.isDirectory) continue
+                    val canonical = try { file.canonicalPath } catch (_: Exception) { file.absolutePath }
+                    if (!seenPaths.add(canonical)) continue
+
+                    val name = if (nameCol >= 0) cursor.getString(nameCol) else null ?: file.name
+                    val isHidden = name.startsWith(".") || file.isHidden
+                    if (!showHiddenFiles && isHidden) continue
+
+                    val size = if (sizeCol >= 0) cursor.getLong(sizeCol) else file.length()
+                    val lastModified = if (dateCol >= 0) cursor.getLong(dateCol) * 1000L else file.lastModified()
+
+                    results.add(
+                        FileItem(
+                            file = file,
+                            name = name,
+                            path = path,
+                            isDirectory = false,
+                            size = size,
+                            lastModified = lastModified,
+                            extension = file.extension.lowercase(),
+                            subItemCount = 0,
+                            isHidden = isHidden
+                        )
+                    )
+                }
+            }
+        } catch (_: Exception) {}
+
+        // 2. Direct File System Sweep for unindexed files across storage
+        val candidateRoots = when (category) {
+            FileCategory.DOWNLOADS -> {
+                listOf(
+                    Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
+                    File("/storage/emulated/0/Download")
+                )
+            }
+            FileCategory.AUDIO -> {
+                listOf(
+                    Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC),
+                    Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PODCASTS),
+                    Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
+                    Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_RECORDINGS),
+                    File("/storage/emulated/0/Music"),
+                    File("/storage/emulated/0/Download"),
+                    File("/storage/emulated/0/Recordings"),
+                    File("/storage/emulated/0/Audiobooks")
+                )
+            }
+            FileCategory.IMAGES -> {
+                listOf(
+                    Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES),
+                    Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM),
+                    Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
+                    File("/storage/emulated/0/Pictures"),
+                    File("/storage/emulated/0/DCIM"),
+                    File("/storage/emulated/0/Download")
+                )
+            }
+            FileCategory.VIDEOS -> {
+                listOf(
+                    Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MOVIES),
+                    Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM),
+                    Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
+                    File("/storage/emulated/0/Movies"),
+                    File("/storage/emulated/0/DCIM/Camera"),
+                    File("/storage/emulated/0/Download")
+                )
+            }
+            FileCategory.DOCUMENTS -> {
+                listOf(
+                    Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS),
+                    Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
+                    File("/storage/emulated/0/Documents"),
+                    File("/storage/emulated/0/Download")
+                )
+            }
+            FileCategory.INSTALLATION_FILES -> {
+                listOf(
+                    Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
+                    File("/storage/emulated/0/Download")
+                )
+            }
+        }.filter { it.exists() && it.canRead() }.distinctBy { it.absolutePath }
+
+        val queue = java.util.ArrayDeque<File>()
+        candidateRoots.forEach { queue.offer(it) }
+
+        var dirsVisited = 0
+        val maxDirs = 400
+
+        while (queue.isNotEmpty() && dirsVisited < maxDirs) {
+            val dir = queue.poll() ?: break
+            dirsVisited++
+            val children = dir.listFiles() ?: continue
+            for (f in children) {
+                val isHidden = f.name.startsWith(".") || f.isHidden
+                if (!showHiddenFiles && isHidden) continue
+
+                if (f.isDirectory) {
+                    if (dirsVisited < maxDirs) queue.offer(f)
+                } else {
+                    val ext = f.extension.lowercase()
+                    val match = if (category == FileCategory.DOWNLOADS) true else extensions.contains(ext)
+                    if (match) {
+                        val canonical = try { f.canonicalPath } catch (_: Exception) { f.absolutePath }
+                        if (seenPaths.add(canonical)) {
+                            results.add(
+                                FileItem(
+                                    file = f,
+                                    name = f.name,
+                                    path = f.absolutePath,
+                                    isDirectory = false,
+                                    size = f.length(),
+                                    lastModified = f.lastModified(),
+                                    extension = ext,
+                                    subItemCount = 0,
+                                    isHidden = isHidden
+                                )
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // Apply sort
+        val comparator = when (sortOption) {
+            SortOption.NAME_ASC -> compareBy<FileItem> { it.name.lowercase() }
+            SortOption.NAME_DESC -> compareByDescending<FileItem> { it.name.lowercase() }
+            SortOption.DATE_DESC -> compareByDescending<FileItem> { it.lastModified }
+            SortOption.DATE_ASC -> compareBy<FileItem> { it.lastModified }
+            SortOption.SIZE_DESC -> compareByDescending<FileItem> { it.size }
+            SortOption.SIZE_ASC -> compareBy<FileItem> { it.size }
+        }
+        results.sortedWith(comparator)
     }
 
     suspend fun getCategoryDirectory(category: FileCategory): File = withContext(Dispatchers.IO) {

@@ -141,4 +141,16 @@
     <string name="show_hidden_files">Show hidden system files</string>
     <string name="show_hidden_files_desc">Show files and folders starting with a dot (.)</string>
     <string name="file_display">File display</string>
+    <string name="extract">Extract</string>
+    <string name="extracting">Extracting…</string>
+    <string name="archive_details">Archive Details</string>
+    <string name="extract_to">Extract to</string>
+    <string name="extract_to_subfolder">Extract to %1$s/</string>
+    <string name="extract_to_current_folder">Extract here (current folder)</string>
+    <string name="archive_contents">Contents</string>
+    <string name="extracted_successfully">Extracted to %1$s</string>
+    <string name="extract_failed">Extraction failed: %1$s</string>
+    <string name="uncompressed_size">Uncompressed: %1$s</string>
+    <string name="compressed_size">Compressed: %1$s</string>
+    <string name="and_more_files">…and %1$d more items</string>
 </resources>

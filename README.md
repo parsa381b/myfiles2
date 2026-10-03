@@ -8,12 +8,14 @@ A fast, lightweight, and responsive Android file manager styled after **Samsung 
 - ⚡ **Ultra-Fast & Zero Lag**: Instant folder loading with asynchronous background I/O on `Dispatchers.IO`. Smooth 120 FPS scrolling using `LazyColumn` item recycling (`key` and `contentType`).
 - 🪶 **Lightweight Footprint**: No heavy database runtimes or memory-hungry bitmap caching. Generates a lean, optimized APK under 4 MB.
 - 🎨 **Samsung One UI Design**:
+  - **Device-Wide Category Hubs**: Clicking any category shortcut (Audio/Music, Images, Videos, Documents, Downloads, Installation files) searches for and lists every file of that type across the entire storage (internal memory, SD cards, and external drives) with containing folder paths and file sizes.
   - Squircle category shortcuts: Images, Videos, Audio, Documents, Downloads, Installation files.
   - Storage capacity card with a progress bar and usage breakdown.
   - Interactive horizontal breadcrumbs for instant directory jumping.
   - Floating bottom action dock for multi-selection and clipboard operations.
   - **Dynamic File Thumbnails**: Embedded cover art for audio files (MP3, FLAC, M4A, OGG) and live application icons extracted from APK packages.
   - **First-Time Storage Access Rationale Modal**: Prominently guides users upon first launching the app, clearly detailing why All-Files access is required (file organization, media playback, package installation, offline privacy guarantee).
+  - **Archive Extractor (ZIP, RAR, 7Z)**: Built-in unzipping and archive extraction with real-time percentage progress bar, archive inspection (entry count, uncompressed size, contents preview), destination selector (subfolder or current folder), and Zip Slip path traversal security.
   - **In-App Package Installer (APK, XAPK, APKS)**: Native installation support for standalone APKs, split APK bundles (APKS), and multi-part XAPKs with automatic OBB expansion extraction, package details dialog, and seamless unknown-sources permission guidance.
   - **Show Hidden Files Toggle**: Settings option to toggle visibility of hidden dotfiles and system folders (e.g. `.nomedia`, `.config`), styled with subtle translucency for easy visual distinction.
   - **USB & External Storage Support**: Full detection and browsing for USB OTG flash drives and micro-SD cards with live hotplug listener and cross-device copy/move chips.
@@ -27,6 +29,8 @@ A fast, lightweight, and responsive Android file manager styled after **Samsung 
   - **PDF Viewer**: Native zero-dependency document renderer using Android's `PdfRenderer` with page navigation (Next/Previous, Page X of Y) and smooth zoom.
   - **Text Editor**: Syntax-highlighted code editor for Kotlin, Java, Python, JS, TS, HTML, XML, JSON, SQL, Bash, Markdown, etc., with line numbers, Edit/View modes, and in-place file saving.
 - 🛠️ **Full File Management**:
+  - **Superfast Universal Search**: Real-time dual-engine search combining Android MediaStore indexed SQLite queries (10-30ms execution) with breadth-first file system scanning across internal storage, SD cards, and USB OTG drives.
+  - **Rich Search Display**: Search result items display the file name, full folder path under the name in primary accent styling, and file size with modification date.
   - Folder browsing & fast in-folder search.
   - File operations: Rename, recursive Delete, Copy, Move with modal destination picker, Share via `FileProvider`.
   - Open files using default system viewer apps.

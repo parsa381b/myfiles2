@@ -38,6 +38,7 @@ fun FileItemRow(
     isInSelectionMode: Boolean,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
+    showPath: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     Surface(
@@ -84,8 +85,18 @@ fun FileItemRow(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
+                if (showPath) {
+                    val parentPath = item.file.parent ?: item.path
+                    Text(
+                        text = parentPath,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.85f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
                 val subtitle = if (item.isDirectory) {
-                    val countStr = if (item.subItemCount == 1) "1 item" else "${item.subItemCount} items"
+                    val countStr = if (item.subItemCount == 1) "1 item" else if (item.subItemCount > 0) "${item.subItemCount} items" else "Folder"
                     val dateStr = FileUtils.formatDate(item.lastModified)
                     if (dateStr.isNotEmpty()) "$countStr | $dateStr" else countStr
                 } else {
@@ -95,7 +106,7 @@ fun FileItemRow(
                 }
                 Text(
                     text = subtitle,
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis

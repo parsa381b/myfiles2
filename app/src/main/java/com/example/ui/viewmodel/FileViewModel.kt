@@ -85,6 +85,15 @@ class FileViewModel(
     private val _sortOption = MutableStateFlow(SortOption.NAME_ASC)
     val sortOption: StateFlow<SortOption> = _sortOption.asStateFlow()
 
+    private val _activeCategory = MutableStateFlow<FileCategory?>(null)
+    val activeCategory: StateFlow<FileCategory?> = _activeCategory.asStateFlow()
+
+    private val _categoryFiles = MutableStateFlow<List<FileItem>?>(null)
+    val categoryFiles: StateFlow<List<FileItem>?> = _categoryFiles.asStateFlow()
+
+    private val _isCategoryLoading = MutableStateFlow(false)
+    val isCategoryLoading: StateFlow<Boolean> = _isCategoryLoading.asStateFlow()
+
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
 
@@ -145,18 +154,45 @@ class FileViewModel(
     }
 
     fun openCategory(category: FileCategory) {
+        _activeCategory.value = category
+        _currentDirectory.value = null
+        clearSelection()
+        clearSearch()
+        loadCategoryFiles(category)
+    }
+
+    fun closeCategory() {
+        _activeCategory.value = null
+        _categoryFiles.value = null
+        clearSelection()
+        clearSearch()
+    }
+
+    fun refreshCategory() {
+        _activeCategory.value?.let { loadCategoryFiles(it) }
+    }
+
+    private fun loadCategoryFiles(category: FileCategory) {
         viewModelScope.launch {
-            val dir = repository.getCategoryDirectory(category)
-            if (!dir.exists()) {
-                dir.mkdirs()
-            }
-            navigateTo(dir)
+            _isCategoryLoading.value = true
+            val items = repository.getCategoryFiles(
+                context = getApplication(),
+                category = category,
+                sortOption = _sortOption.value,
+                showHiddenFiles = _showHiddenFiles.value
+            )
+            _categoryFiles.value = items
+            _isCategoryLoading.value = false
         }
     }
 
     fun navigateUp(): Boolean {
         if (_searchQuery.value.isNotEmpty()) {
             clearSearch()
+            return true
+        }
+        if (_activeCategory.value != null) {
+            closeCategory()
             return true
         }
         val curr = _currentDirectory.value ?: return false
@@ -175,18 +211,27 @@ class FileViewModel(
 
     fun navigateToHome() {
         _currentDirectory.value = null
+        _activeCategory.value = null
+        _categoryFiles.value = null
         clearSelection()
         clearSearch()
         refreshStorageVolumes()
     }
 
     fun refreshCurrentDirectory() {
-        _currentDirectory.value?.let { loadDirectory(it) } ?: refreshStorageVolumes()
+        if (_activeCategory.value != null) {
+            refreshCategory()
+        } else if (_currentDirectory.value != null) {
+            loadDirectory(_currentDirectory.value!!)
+        } else {
+            refreshStorageVolumes()
+        }
     }
 
     fun setSortOption(option: SortOption) {
         _sortOption.value = option
         _currentDirectory.value?.let { loadDirectory(it) }
+        _activeCategory.value?.let { loadCategoryFiles(it) }
     }
 
     private fun loadDirectory(directory: File) {
@@ -209,12 +254,16 @@ class FileViewModel(
 
         searchJob = viewModelScope.launch {
             _isSearching.value = true
-            delay(250) // Debounce
-            val root = _currentDirectory.value ?: _storageVolumes.value.firstOrNull()?.rootFile
-            if (root != null) {
-                val results = repository.searchFiles(root, query, _showHiddenFiles.value)
-                _searchResults.value = results
-            }
+            // Fast debounce for snappy responsiveness
+            delay(80)
+            val root = _currentDirectory.value
+            val results = repository.searchFiles(
+                context = getApplication(),
+                rootDir = root,
+                query = query,
+                showHiddenFiles = _showHiddenFiles.value
+            )
+            _searchResults.value = results
             _isSearching.value = false
         }
     }

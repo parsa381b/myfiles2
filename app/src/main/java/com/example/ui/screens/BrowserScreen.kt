@@ -92,6 +92,7 @@ fun BrowserScreen(
                 FileList(
                     files = searchResults,
                     selectedItems = selectedItems,
+                    showPath = true,
                     onItemClick = onItemClick,
                     onItemLongClick = onItemLongClick
                 )
@@ -259,6 +260,7 @@ private fun SearchHeader(
 private fun FileList(
     files: List<FileItem>,
     selectedItems: Set<FileItem>,
+    showPath: Boolean = false,
     onItemClick: (FileItem) -> Unit,
     onItemLongClick: (FileItem) -> Unit
 ) {
@@ -278,6 +280,7 @@ private fun FileList(
                 item = item,
                 isSelected = isSelected,
                 isInSelectionMode = selectedItems.isNotEmpty(),
+                showPath = showPath,
                 onClick = { onItemClick(item) },
                 onLongClick = { onItemLongClick(item) }
             )

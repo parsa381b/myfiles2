@@ -22,6 +22,7 @@ sealed interface ActiveViewer {
     data class Pdf(val file: File) : ActiveViewer
     data class Text(val file: File) : ActiveViewer
     data class PackageInstaller(val file: File) : ActiveViewer
+    data class ArchiveExtractor(val file: File) : ActiveViewer
 }
 
 object FileUtils {
@@ -64,6 +65,7 @@ object FileUtils {
         val ext = file.extension.lowercase(Locale.ROOT)
         return when (ext) {
             "apk", "xapk", "apks" -> ActiveViewer.PackageInstaller(file)
+            "zip", "rar", "7z" -> ActiveViewer.ArchiveExtractor(file)
             "jpg", "jpeg", "png", "webp", "gif", "bmp", "heic", "svg" -> ActiveViewer.Image(file)
             "mp4", "mkv", "avi", "mov", "webm", "3gp", "flv", "ts" -> ActiveViewer.Video(file)
             "mp3", "wav", "flac", "ogg", "m4a", "aac", "wma", "opus" -> ActiveViewer.Audio(file)

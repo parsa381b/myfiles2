@@ -142,4 +142,16 @@
     <string name="show_hidden_files">نمایش فایل‌های مخفی سیستم</string>
     <string name="show_hidden_files_desc">نمایش فایل‌ها و پوشه‌هایی که با نقطه (.) شروع می‌شوند</string>
     <string name="file_display">نمایش فایل‌ها</string>
+    <string name="extract">استخراج</string>
+    <string name="extracting">در حال استخراج…</string>
+    <string name="archive_details">مشخصات فایل فشرده</string>
+    <string name="extract_to">محل استخراج</string>
+    <string name="extract_to_subfolder">استخراج در پوشه %1$s/</string>
+    <string name="extract_to_current_folder">استخراج در همین پوشه فعلی</string>
+    <string name="archive_contents">محتویات</string>
+    <string name="extracted_successfully">با موفقیت در %1$s استخراج شد</string>
+    <string name="extract_failed">خطا در استخراج: %1$s</string>
+    <string name="uncompressed_size">حجم پس از استخراج: %1$s</string>
+    <string name="compressed_size">حجم فشرده: %1$s</string>
+    <string name="and_more_files">…و %1$d فایل دیگر</string>
 </resources>

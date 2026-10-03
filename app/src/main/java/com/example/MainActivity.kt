@@ -20,6 +20,13 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.text.input.ImeAction
+import kotlinx.coroutines.delay
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
@@ -54,6 +61,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.data.model.AppLanguage
+import com.example.data.model.FileCategory
 import com.example.data.model.FileItem
 import com.example.data.model.OperationType
 import com.example.ui.components.ConfirmDeleteDialog
@@ -66,10 +74,13 @@ import com.example.ui.components.SortDialog
 import com.example.ui.components.StorageAccessRationaleDialog
 import com.example.ui.components.TextInputDialog
 import com.example.ui.screens.BrowserScreen
+import com.example.ui.screens.CategoryFilesScreen
 import com.example.ui.screens.HomeScreen
+import com.example.ui.screens.SearchResultsScreen
 import com.example.ui.screens.TrashScreen
 import com.example.ui.theme.MyFilesTheme
 import com.example.ui.viewmodel.FileViewModel
+import com.example.ui.viewers.ArchiveExtractDialog
 import com.example.ui.viewers.AudioPlayerDialog
 import com.example.ui.viewers.ImageViewerDialog
 import com.example.ui.viewers.PackageInstallerDialog
@@ -184,6 +195,10 @@ private fun MainContent(viewModel: FileViewModel) {
     val trashItems by viewModel.trashItems.collectAsStateWithLifecycle()
     val showHiddenFiles by viewModel.showHiddenFiles.collectAsStateWithLifecycle()
 
+    val activeCategory by viewModel.activeCategory.collectAsStateWithLifecycle()
+    val categoryFiles by viewModel.categoryFiles.collectAsStateWithLifecycle()
+    val isCategoryLoading by viewModel.isCategoryLoading.collectAsStateWithLifecycle()
+
     var isSearchActive by remember { mutableStateOf(false) }
     var isTrashOpen by remember { mutableStateOf(false) }
     var showRationaleDialog by rememberSaveable { mutableStateOf(!hasPermission) }
@@ -195,6 +210,21 @@ private fun MainContent(viewModel: FileViewModel) {
     var destinationPickerOperation by remember { mutableStateOf<OperationType?>(null) }
     var activeViewer by remember { mutableStateOf<ActiveViewer?>(null) }
     var detailsTargetItem by remember { mutableStateOf<FileItem?>(null) }
+
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val searchFocusRequester = remember { FocusRequester() }
+
+    LaunchedEffect(isSearchActive) {
+        if (isSearchActive) {
+            delay(100)
+            try {
+                searchFocusRequester.requestFocus()
+                keyboardController?.show()
+            } catch (_: Exception) {}
+        } else {
+            keyboardController?.hide()
+        }
+    }
 
     LaunchedEffect(Unit) {
         viewModel.userMessage.collect { msg ->
@@ -213,8 +243,11 @@ private fun MainContent(viewModel: FileViewModel) {
             activeViewer = null
         } else if (isTrashOpen) {
             isTrashOpen = false
+        } else if (activeCategory != null) {
+            viewModel.closeCategory()
         } else if (isSearchActive || searchQuery.isNotEmpty()) {
             isSearchActive = false
+            keyboardController?.hide()
             viewModel.clearSearch()
         } else if (selectedItems.isNotEmpty()) {
             viewModel.clearSelection()
@@ -236,13 +269,34 @@ private fun MainContent(viewModel: FileViewModel) {
                                 onValueChange = { viewModel.onSearchQueryChanged(it) },
                                 placeholder = { Text(stringResource(R.string.search_placeholder)) },
                                 singleLine = true,
+                                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                                keyboardActions = KeyboardActions(
+                                    onSearch = { keyboardController?.hide() }
+                                ),
                                 colors = OutlinedTextFieldDefaults.colors(
                                     focusedBorderColor = Color.Transparent,
                                     unfocusedBorderColor = Color.Transparent
                                 ),
                                 modifier = Modifier
                                     .fillMaxWidth()
+                                    .focusRequester(searchFocusRequester)
                                     .testTag("topbar_search_input")
+                            )
+                        } else if (activeCategory != null) {
+                            val catTitle = when (activeCategory) {
+                                FileCategory.AUDIO -> stringResource(R.string.audio)
+                                FileCategory.IMAGES -> stringResource(R.string.images)
+                                FileCategory.VIDEOS -> stringResource(R.string.videos)
+                                FileCategory.DOCUMENTS -> stringResource(R.string.documents)
+                                FileCategory.DOWNLOADS -> stringResource(R.string.downloads)
+                                FileCategory.INSTALLATION_FILES -> stringResource(R.string.installation_files)
+                                null -> ""
+                            }
+                            Text(
+                                text = catTitle,
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onBackground
                             )
                         } else {
                             Text(
@@ -258,11 +312,19 @@ private fun MainContent(viewModel: FileViewModel) {
                             IconButton(
                                 onClick = {
                                     isSearchActive = false
+                                    keyboardController?.hide()
                                     viewModel.clearSearch()
                                 },
                                 modifier = Modifier.testTag("button_close_search")
                             ) {
                                 Icon(Icons.Default.Close, contentDescription = stringResource(R.string.close))
+                            }
+                        } else if (activeCategory != null) {
+                            IconButton(
+                                onClick = { viewModel.closeCategory() },
+                                modifier = Modifier.testTag("button_back_category")
+                            ) {
+                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                             }
                         } else if (currentDir != null) {
                             IconButton(
@@ -312,8 +374,17 @@ private fun MainContent(viewModel: FileViewModel) {
                     enter = fadeIn(),
                     exit = fadeOut()
                 ) {
+                    val singleItem = if (selectedItems.size == 1) selectedItems.first() else null
+                    val canExtract = singleItem != null && com.example.util.ArchiveFormat.fromFile(singleItem.file) != null
                     OperationBottomBar(
                         selectedCount = selectedItems.size,
+                        canExtract = canExtract,
+                        onExtract = {
+                            singleItem?.let {
+                                viewModel.clearSelection()
+                                activeViewer = ActiveViewer.ArchiveExtractor(it.file)
+                            }
+                        },
                         onCopy = { destinationPickerOperation = OperationType.COPY },
                         onMove = { destinationPickerOperation = OperationType.MOVE },
                         onDelete = { showDeleteConfirmDialog = true },
@@ -357,17 +428,67 @@ private fun MainContent(viewModel: FileViewModel) {
                     onEmptyTrash = { viewModel.emptyTrash() },
                     onNavigateBack = { isTrashOpen = false }
                 )
-            } else if (currentDir == null) {
-                HomeScreen(
-                    storages = storages,
-                    hasStoragePermission = hasPermission,
-                    trashEnabled = trashEnabled,
-                    trashCount = trashItems.size,
-                    onGrantPermission = { showRationaleDialog = true },
-                    onSelectStorage = { viewModel.navigateTo(it) },
-                    onCategoryClick = { viewModel.openCategory(it) },
-                    onOpenTrash = { isTrashOpen = true }
+            } else if (activeCategory != null) {
+                CategoryFilesScreen(
+                    category = activeCategory!!,
+                    files = categoryFiles,
+                    isLoading = isCategoryLoading,
+                    selectedItems = selectedItems,
+                    searchQuery = searchQuery,
+                    onItemClick = { item ->
+                        keyboardController?.hide()
+                        if (selectedItems.isNotEmpty()) {
+                            viewModel.toggleSelection(item)
+                        } else {
+                            val viewer = FileUtils.getViewerForFile(item.file)
+                            if (viewer != null) {
+                                activeViewer = viewer
+                            } else {
+                                FileUtils.openFile(context, item.file)
+                            }
+                        }
+                    },
+                    onItemLongClick = { item -> viewModel.toggleSelection(item) },
+                    onSelectAll = { viewModel.selectAll(it) },
+                    onOpenSort = { showSortDialog = true }
                 )
+            } else if (currentDir == null) {
+                if (isSearchActive || searchQuery.isNotBlank()) {
+                    SearchResultsScreen(
+                        searchQuery = searchQuery,
+                        searchResults = searchResults,
+                        isSearching = isSearching,
+                        selectedItems = selectedItems,
+                        onItemClick = { item ->
+                            keyboardController?.hide()
+                            if (selectedItems.isNotEmpty()) {
+                                viewModel.toggleSelection(item)
+                            } else if (item.isDirectory) {
+                                isSearchActive = false
+                                viewModel.navigateTo(item.file)
+                            } else {
+                                val viewer = FileUtils.getViewerForFile(item.file)
+                                if (viewer != null) {
+                                    activeViewer = viewer
+                                } else {
+                                    FileUtils.openFile(context, item.file)
+                                }
+                            }
+                        },
+                        onItemLongClick = { item -> viewModel.toggleSelection(item) }
+                    )
+                } else {
+                    HomeScreen(
+                        storages = storages,
+                        hasStoragePermission = hasPermission,
+                        trashEnabled = trashEnabled,
+                        trashCount = trashItems.size,
+                        onGrantPermission = { showRationaleDialog = true },
+                        onSelectStorage = { viewModel.navigateTo(it) },
+                        onCategoryClick = { viewModel.openCategory(it) },
+                        onOpenTrash = { isTrashOpen = true }
+                    )
+                }
             } else {
                 BrowserScreen(
                     currentDirectory = currentDir!!,
@@ -378,6 +499,7 @@ private fun MainContent(viewModel: FileViewModel) {
                     searchResults = searchResults,
                     isSearching = isSearching,
                     onItemClick = { item ->
+                        keyboardController?.hide()
                         if (selectedItems.isNotEmpty()) {
                             viewModel.toggleSelection(item)
                         } else if (item.isDirectory) {
@@ -518,6 +640,13 @@ private fun MainContent(viewModel: FileViewModel) {
             is ActiveViewer.PackageInstaller -> PackageInstallerDialog(
                 file = viewer.file,
                 onDismiss = { activeViewer = null }
+            )
+            is ActiveViewer.ArchiveExtractor -> ArchiveExtractDialog(
+                file = viewer.file,
+                onDismiss = { activeViewer = null },
+                onExtracted = { _ ->
+                    viewModel.refreshCurrentDirectory()
+                }
             )
             null -> Unit
         }
