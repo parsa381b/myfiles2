@@ -1,5 +1,22 @@
 # Release Notes
 
+## Version 1.6.0 — Remember Folder Sort Preference
+
+**Release Date:** October 3, 2026
+
+---
+
+### Highlights
+
+1. **"Remember Folder Sort" Setting**
+   - Added a new toggle in the Settings dialog under **Sorting preference**: **"Remember folder sort"** (*"Save custom sort for each folder individually (default: A to Z)"*).
+   - **Per-Folder Persistence**: When enabled, the app tracks and remembers the sorting option (Name A-Z, Name Z-A, Date Newest, Date Oldest, Size Largest, Size Smallest) chosen for each individual directory on your storage.
+   - **Default A to Z**: Whenever you enter a folder that has not yet had a custom sort option selected, the app automatically sorts its items by **Name A to Z** (`NAME_ASC`).
+   - Changing the sort order in any folder immediately associates and remembers that sort order for subsequent visits to that folder.
+   - Fully localized in English and Persian (فارسی).
+
+---
+
 ## Version 1.5.0 — Storage Usage & Duplicate File Finder in Advanced Features
 
 **Release Date:** October 3, 2026

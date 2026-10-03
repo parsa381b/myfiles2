@@ -155,4 +155,11 @@
     <string name="and_more_files">…and %1$d more items</string>
     <string name="advanced_features">Advanced Features</string>
     <string name="advanced_features_subtitle">Tools &amp; experimental capabilities</string>
+    <string name="sorting_preference">Sorting preference</string>
+    <string name="remember_folder_sort">Remember folder sort</string>
+    <string name="remember_folder_sort_desc">Save custom sort for each folder individually (default: A to Z)</string>
+    <string name="create_file">Create file</string>
+    <string name="new_file_title">Create new file</string>
+    <string name="phone_info">Phone Info</string>
+    <string name="phone_info_subtitle">Specifications, CPU architecture, battery health &amp; screen</string>
 </resources>

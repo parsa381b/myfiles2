@@ -156,4 +156,7 @@
     <string name="and_more_files">…و %1$d فایل دیگر</string>
     <string name="advanced_features">قابلیت‌های پیشرفته</string>
     <string name="advanced_features_subtitle">ابزارها و امکانات ویژه</string>
+    <string name="sorting_preference">تنظیمات مرتب‌سازی</string>
+    <string name="remember_folder_sort">به خاطر سپردن مرتب‌سازی هر پوشه</string>
+    <string name="remember_folder_sort_desc">ذخیره نحوه مرتب‌سازی برای هر پوشه به صورت مجزا (پیش‌فرض: الف تا ی)</string>
 </resources>

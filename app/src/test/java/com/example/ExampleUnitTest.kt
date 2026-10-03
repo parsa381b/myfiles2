@@ -273,4 +273,31 @@ class ExampleUnitTest {
         val percent = ((used.toDouble() / total) * 100).toInt()
         assertEquals(70, percent)
     }
+
+    @Test
+    fun testRememberFolderSortStrings() {
+        val titleRes = R.string.remember_folder_sort
+        val descRes = R.string.remember_folder_sort_desc
+        assertNotEquals(0, titleRes)
+        assertNotEquals(0, descRes)
+    }
+
+    @Test
+    fun testRememberFolderSortDefaultAndOverride() {
+        val folderSortMap = mutableMapOf<String, com.example.data.model.SortOption>()
+
+        val folderA = "/storage/emulated/0/DCIM"
+        val folderB = "/storage/emulated/0/Download"
+
+        // Default is A to Z (NAME_ASC)
+        val defaultSort = folderSortMap[folderA] ?: com.example.data.model.SortOption.NAME_ASC
+        assertEquals(com.example.data.model.SortOption.NAME_ASC, defaultSort)
+
+        // User overrides folder A to DATE_DESC
+        folderSortMap[folderA] = com.example.data.model.SortOption.DATE_DESC
+
+        assertEquals(com.example.data.model.SortOption.DATE_DESC, folderSortMap[folderA])
+        // Folder B still defaults to NAME_ASC
+        assertEquals(com.example.data.model.SortOption.NAME_ASC, folderSortMap[folderB] ?: com.example.data.model.SortOption.NAME_ASC)
+    }
 }

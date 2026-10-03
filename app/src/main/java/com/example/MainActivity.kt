@@ -195,6 +195,7 @@ private fun MainContent(viewModel: FileViewModel) {
     val trashEnabled by viewModel.trashEnabled.collectAsStateWithLifecycle()
     val trashItems by viewModel.trashItems.collectAsStateWithLifecycle()
     val showHiddenFiles by viewModel.showHiddenFiles.collectAsStateWithLifecycle()
+    val rememberFolderSort by viewModel.rememberFolderSort.collectAsStateWithLifecycle()
 
     val activeCategory by viewModel.activeCategory.collectAsStateWithLifecycle()
     val categoryFiles by viewModel.categoryFiles.collectAsStateWithLifecycle()
@@ -614,6 +615,8 @@ private fun MainContent(viewModel: FileViewModel) {
                 onTrashToggled = { viewModel.setTrashEnabled(it) },
                 showHiddenFiles = showHiddenFiles,
                 onShowHiddenFilesToggled = { viewModel.setShowHiddenFiles(it) },
+                rememberFolderSort = rememberFolderSort,
+                onRememberFolderSortToggled = { viewModel.setRememberFolderSort(it) },
                 onDismiss = { showSettingsDialog = false }
             )
         }

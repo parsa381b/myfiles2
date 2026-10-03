@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [1.6.0] - 2026-10-03
+
+### Added
+- **Remember Folder Sort Preference**:
+  - Added **"Remember Folder Sort"** toggle under a dedicated **Sorting preference** section in Settings.
+  - When enabled, the app remembers the custom sorting method selected by the user for each directory individually (persisted in SharedPreferences by folder canonical path).
+  - Newly visited folders automatically default to **Name A to Z** (`NAME_ASC`) as requested.
+  - Changing the sort method in any folder automatically saves and associates that sort order with that specific folder.
+  - Full localization in English and Persian (فارسی).
+
+---
+
 ## [1.5.0] - 2026-10-03
 
 ### Added

@@ -673,6 +673,29 @@ class FileRepository {
         }
     }
 
+    suspend fun createFile(parent: File, name: String, content: String = ""): Result<File> = withContext(Dispatchers.IO) {
+        try {
+            val cleanName = name.trim()
+            if (cleanName.isEmpty() || cleanName.contains("/") || cleanName.contains("\\")) {
+                return@withContext Result.failure(IllegalArgumentException("Invalid file name"))
+            }
+            val newFile = File(parent, cleanName)
+            if (newFile.exists()) {
+                return@withContext Result.failure(IOException("A file with this name already exists"))
+            }
+            if (newFile.createNewFile()) {
+                if (content.isNotEmpty()) {
+                    newFile.writeText(content)
+                }
+                Result.success(newFile)
+            } else {
+                Result.failure(IOException("Could not create file"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     suspend fun getSubdirectoriesIn(directory: File): Result<List<FileItem>> = withContext(Dispatchers.IO) {
         try {
             if (!directory.exists()) {

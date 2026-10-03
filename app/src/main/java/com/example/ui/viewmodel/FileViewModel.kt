@@ -46,6 +46,9 @@ class FileViewModel(
     private val _showHiddenFiles = MutableStateFlow(prefs.getBoolean("pref_show_hidden_files", false))
     val showHiddenFiles: StateFlow<Boolean> = _showHiddenFiles.asStateFlow()
 
+    private val _rememberFolderSort = MutableStateFlow(prefs.getBoolean("pref_remember_folder_sort", false))
+    val rememberFolderSort: StateFlow<Boolean> = _rememberFolderSort.asStateFlow()
+
     private val _trashItems = MutableStateFlow<List<com.example.data.model.TrashItem>>(emptyList())
     val trashItems: StateFlow<List<com.example.data.model.TrashItem>> = _trashItems.asStateFlow()
 
@@ -143,6 +146,35 @@ class FileViewModel(
         refreshCurrentDirectory()
     }
 
+    fun setRememberFolderSort(enabled: Boolean) {
+        _rememberFolderSort.value = enabled
+        prefs.edit().putBoolean("pref_remember_folder_sort", enabled).apply()
+        val curr = _currentDirectory.value
+        if (enabled && curr != null) {
+            _sortOption.value = getSortForFolder(curr)
+            loadDirectory(curr)
+        }
+    }
+
+    fun getSortForFolder(dir: File): SortOption {
+        val pathKey = try { dir.canonicalPath } catch (_: Exception) { dir.absolutePath }
+        val savedName = prefs.getString("folder_sort_$pathKey", null)
+        return if (savedName != null) {
+            try {
+                SortOption.valueOf(savedName)
+            } catch (_: Exception) {
+                SortOption.NAME_ASC
+            }
+        } else {
+            SortOption.NAME_ASC
+        }
+    }
+
+    private fun saveSortForFolder(dir: File, option: SortOption) {
+        val pathKey = try { dir.canonicalPath } catch (_: Exception) { dir.absolutePath }
+        prefs.edit().putString("folder_sort_$pathKey", option.name).apply()
+    }
+
     fun loadTrashItems() {
         viewModelScope.launch {
             trashRepository.getTrashItems().onSuccess {
@@ -165,6 +197,9 @@ class FileViewModel(
         _currentDirectory.value = directory
         clearSelection()
         clearSearch()
+        if (_rememberFolderSort.value) {
+            _sortOption.value = getSortForFolder(directory)
+        }
         loadDirectory(directory)
     }
 
@@ -245,7 +280,11 @@ class FileViewModel(
 
     fun setSortOption(option: SortOption) {
         _sortOption.value = option
-        _currentDirectory.value?.let { loadDirectory(it) }
+        val curr = _currentDirectory.value
+        if (_rememberFolderSort.value && curr != null) {
+            saveSortForFolder(curr, option)
+        }
+        curr?.let { loadDirectory(it) }
         _activeCategory.value?.let { loadCategoryFiles(it) }
     }
 
@@ -319,6 +358,18 @@ class FileViewModel(
                     refreshCurrentDirectory()
                 }
                 .onFailure { _userMessage.emit(it.localizedMessage ?: "Failed to create folder") }
+        }
+    }
+
+    fun createFile(name: String) {
+        val curr = _currentDirectory.value ?: return
+        viewModelScope.launch {
+            repository.createFile(curr, name)
+                .onSuccess {
+                    _userMessage.emit("File \"$name\" created")
+                    refreshCurrentDirectory()
+                }
+                .onFailure { _userMessage.emit(it.localizedMessage ?: "Failed to create file") }
         }
     }
 
