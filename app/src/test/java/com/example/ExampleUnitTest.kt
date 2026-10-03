@@ -149,4 +149,16 @@ class ExampleUnitTest {
         assertEquals(true, pkg.hasObb)
         assertEquals(2, pkg.splitApkNames.size)
     }
+
+    @Test
+    fun testHiddenFileFlag() {
+        val normalItem = com.example.data.model.FileItem(file = File("/storage/emulated/0/Documents/report.pdf"))
+        assertEquals(false, normalItem.isHidden)
+
+        val hiddenItem = com.example.data.model.FileItem(file = File("/storage/emulated/0/Documents/.nomedia"))
+        assertEquals(true, hiddenItem.isHidden)
+
+        val hiddenFolder = com.example.data.model.FileItem(file = File("/storage/emulated/0/.trash"))
+        assertEquals(true, hiddenFolder.isHidden)
+    }
 }

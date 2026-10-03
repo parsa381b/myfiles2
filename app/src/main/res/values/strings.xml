@@ -138,4 +138,7 @@
     <string name="storage_reason_privacy_desc">Your files remain strictly offline on your device. No cloud sync, telemetry, or remote uploads.</string>
     <string name="storage_access_how_to_grant">On the next screen, toggle on “Allow access to manage all files” for My Files.</string>
     <string name="not_now">Not now</string>
+    <string name="show_hidden_files">Show hidden system files</string>
+    <string name="show_hidden_files_desc">Show files and folders starting with a dot (.)</string>
+    <string name="file_display">File display</string>
 </resources>

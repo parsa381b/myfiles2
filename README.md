@@ -15,6 +15,7 @@ A fast, lightweight, and responsive Android file manager styled after **Samsung 
   - **Dynamic File Thumbnails**: Embedded cover art for audio files (MP3, FLAC, M4A, OGG) and live application icons extracted from APK packages.
   - **First-Time Storage Access Rationale Modal**: Prominently guides users upon first launching the app, clearly detailing why All-Files access is required (file organization, media playback, package installation, offline privacy guarantee).
   - **In-App Package Installer (APK, XAPK, APKS)**: Native installation support for standalone APKs, split APK bundles (APKS), and multi-part XAPKs with automatic OBB expansion extraction, package details dialog, and seamless unknown-sources permission guidance.
+  - **Show Hidden Files Toggle**: Settings option to toggle visibility of hidden dotfiles and system folders (e.g. `.nomedia`, `.config`), styled with subtle translucency for easy visual distinction.
   - **USB & External Storage Support**: Full detection and browsing for USB OTG flash drives and micro-SD cards with live hotplug listener and cross-device copy/move chips.
   - **Trash & Recycle Bin**: Full Trash system with a settings toggle ON/OFF, 30-day retention, Home screen shortcut, batch Restore, and Empty Trash.
   - **Dark Mode**: System, Light, and Dark mode theme support with high-contrast surfaces.

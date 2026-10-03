@@ -43,6 +43,9 @@ class FileViewModel(
     private val _trashEnabled = MutableStateFlow(prefs.getBoolean("pref_trash_enabled", true))
     val trashEnabled: StateFlow<Boolean> = _trashEnabled.asStateFlow()
 
+    private val _showHiddenFiles = MutableStateFlow(prefs.getBoolean("pref_show_hidden_files", false))
+    val showHiddenFiles: StateFlow<Boolean> = _showHiddenFiles.asStateFlow()
+
     private val _trashItems = MutableStateFlow<List<com.example.data.model.TrashItem>>(emptyList())
     val trashItems: StateFlow<List<com.example.data.model.TrashItem>> = _trashItems.asStateFlow()
 
@@ -108,6 +111,12 @@ class FileViewModel(
     fun setTrashEnabled(enabled: Boolean) {
         _trashEnabled.value = enabled
         prefs.edit().putBoolean("pref_trash_enabled", enabled).apply()
+    }
+
+    fun setShowHiddenFiles(show: Boolean) {
+        _showHiddenFiles.value = show
+        prefs.edit().putBoolean("pref_show_hidden_files", show).apply()
+        refreshCurrentDirectory()
     }
 
     fun loadTrashItems() {
@@ -183,7 +192,7 @@ class FileViewModel(
     private fun loadDirectory(directory: File) {
         viewModelScope.launch {
             _uiState.value = UiState.Loading
-            repository.getFilesInDirectory(directory, _sortOption.value)
+            repository.getFilesInDirectory(directory, _sortOption.value, _showHiddenFiles.value)
                 .onSuccess { _uiState.value = UiState.Success(it) }
                 .onFailure { _uiState.value = UiState.Error(it.localizedMessage ?: "Cannot access folder") }
         }
@@ -203,7 +212,7 @@ class FileViewModel(
             delay(250) // Debounce
             val root = _currentDirectory.value ?: _storageVolumes.value.firstOrNull()?.rootFile
             if (root != null) {
-                val results = repository.searchFiles(root, query)
+                val results = repository.searchFiles(root, query, _showHiddenFiles.value)
                 _searchResults.value = results
             }
             _isSearching.value = false

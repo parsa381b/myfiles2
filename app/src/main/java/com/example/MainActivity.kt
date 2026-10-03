@@ -182,6 +182,7 @@ private fun MainContent(viewModel: FileViewModel) {
     val languageMode by viewModel.languageMode.collectAsStateWithLifecycle()
     val trashEnabled by viewModel.trashEnabled.collectAsStateWithLifecycle()
     val trashItems by viewModel.trashItems.collectAsStateWithLifecycle()
+    val showHiddenFiles by viewModel.showHiddenFiles.collectAsStateWithLifecycle()
 
     var isSearchActive by remember { mutableStateOf(false) }
     var isTrashOpen by remember { mutableStateOf(false) }
@@ -457,6 +458,8 @@ private fun MainContent(viewModel: FileViewModel) {
                 onLanguageSelected = { viewModel.setLanguageMode(it) },
                 trashEnabled = trashEnabled,
                 onTrashToggled = { viewModel.setTrashEnabled(it) },
+                showHiddenFiles = showHiddenFiles,
+                onShowHiddenFilesToggled = { viewModel.setShowHiddenFiles(it) },
                 onDismiss = { showSettingsDialog = false }
             )
         }

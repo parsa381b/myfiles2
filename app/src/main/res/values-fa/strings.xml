@@ -139,4 +139,7 @@
     <string name="storage_reason_privacy_desc">اطلاعات شما کاملاً روی دستگاه باقی می‌ماند و هیچ فایلی به سرور خارجی ارسال نمی‌شود.</string>
     <string name="storage_access_how_to_grant">در صفحه بعد، گزینه «مجوز مدیریت همه فایل‌ها» را برای برنامه فعال کنید.</string>
     <string name="not_now">بعداً</string>
+    <string name="show_hidden_files">نمایش فایل‌های مخفی سیستم</string>
+    <string name="show_hidden_files_desc">نمایش فایل‌ها و پوشه‌هایی که با نقطه (.) شروع می‌شوند</string>
+    <string name="file_display">نمایش فایل‌ها</string>
 </resources>

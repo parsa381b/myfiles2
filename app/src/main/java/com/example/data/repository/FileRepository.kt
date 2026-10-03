@@ -194,7 +194,8 @@ class FileRepository {
 
     suspend fun getFilesInDirectory(
         directory: File,
-        sortOption: SortOption = SortOption.NAME_ASC
+        sortOption: SortOption = SortOption.NAME_ASC,
+        showHiddenFiles: Boolean = false
     ): Result<List<FileItem>> = withContext(Dispatchers.IO) {
         try {
             if (!directory.exists()) {
@@ -204,11 +205,24 @@ class FileRepository {
                 return@withContext Result.failure(IOException("Folder cannot be read. Grant permission in Settings."))
             }
 
-            val rawFiles = directory.listFiles() ?: emptyArray()
+            val rawFiles = directory.listFiles()?.toList() ?: emptyList()
+            val filteredFiles = if (showHiddenFiles) {
+                rawFiles
+            } else {
+                rawFiles.filter { !it.name.startsWith(".") && !it.isHidden }
+            }
 
-            val mapped = rawFiles.map { file ->
+            val mapped = filteredFiles.map { file ->
                 val isDir = file.isDirectory
-                val count = if (isDir) file.list()?.size ?: 0 else 0
+                val count = if (isDir) {
+                    val subFiles = file.listFiles()
+                    if (showHiddenFiles) {
+                        subFiles?.size ?: 0
+                    } else {
+                        subFiles?.count { !it.name.startsWith(".") && !it.isHidden } ?: 0
+                    }
+                } else 0
+                val isHidden = file.name.startsWith(".") || file.isHidden
                 FileItem(
                     file = file,
                     name = file.name,
@@ -217,7 +231,8 @@ class FileRepository {
                     size = if (isDir) 0L else file.length(),
                     lastModified = file.lastModified(),
                     extension = if (isDir) "" else file.extension.lowercase(),
-                    subItemCount = count
+                    subItemCount = count,
+                    isHidden = isHidden
                 )
             }
 
@@ -239,6 +254,7 @@ class FileRepository {
     suspend fun searchFiles(
         rootDir: File,
         query: String,
+        showHiddenFiles: Boolean = false,
         maxResults: Int = 100
     ): List<FileItem> = withContext(Dispatchers.IO) {
         val results = mutableListOf<FileItem>()
@@ -250,8 +266,15 @@ class FileRepository {
             val list = dir.listFiles() ?: return
             for (f in list) {
                 if (results.size >= maxResults) break
+                val isHidden = f.name.startsWith(".") || f.isHidden
+                if (!showHiddenFiles && isHidden) continue
+
                 if (f.name.lowercase().contains(lowercaseQuery)) {
                     val isDir = f.isDirectory
+                    val count = if (isDir) {
+                        val subFiles = f.listFiles()
+                        if (showHiddenFiles) subFiles?.size ?: 0 else subFiles?.count { !it.name.startsWith(".") && !it.isHidden } ?: 0
+                    } else 0
                     results.add(
                         FileItem(
                             file = f,
@@ -261,12 +284,15 @@ class FileRepository {
                             size = if (isDir) 0L else f.length(),
                             lastModified = f.lastModified(),
                             extension = if (isDir) "" else f.extension.lowercase(),
-                            subItemCount = if (isDir) f.list()?.size ?: 0 else 0
+                            subItemCount = count,
+                            isHidden = isHidden
                         )
                     )
                 }
-                if (f.isDirectory && !f.name.startsWith(".")) {
-                    searchRecursive(f, currentDepth + 1)
+                if (f.isDirectory) {
+                    if (showHiddenFiles || !isHidden) {
+                        searchRecursive(f, currentDepth + 1)
+                    }
                 }
             }
         }

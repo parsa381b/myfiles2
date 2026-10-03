@@ -10,7 +10,8 @@ data class FileItem(
     val size: Long = if (isDirectory) 0L else file.length(),
     val lastModified: Long = file.lastModified(),
     val extension: String = if (isDirectory) "" else file.extension.lowercase(),
-    val subItemCount: Int = 0
+    val subItemCount: Int = 0,
+    val isHidden: Boolean = name.startsWith(".") || file.isHidden
 )
 
 enum class SortOption {
