@@ -29,6 +29,8 @@ class ExampleRobolectricTest {
     val localizedContext = context.createConfigurationContext(config)
     val appNameFa = localizedContext.getString(R.string.app_name)
     assertEquals("فایل‌های من", appNameFa)
+    val viewPrefFa = localizedContext.getString(R.string.view_preference)
+    assertEquals("تنظیمات نحوه نمایش", viewPrefFa)
   }
 
   @Test

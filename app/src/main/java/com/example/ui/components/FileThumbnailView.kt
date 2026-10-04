@@ -4,7 +4,9 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Android
@@ -14,6 +16,7 @@ import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.FolderZip
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.InsertDriveFile
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.VideoFile
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
@@ -130,6 +133,59 @@ fun FileThumbnailView(
             DefaultIconBox(
                 icon = Icons.Default.Android,
                 tint = CategoryApks,
+                modifier = modifier
+            )
+        }
+        return
+    }
+
+    // Video Thumbnail
+    if (extension in setOf("mp4", "mkv", "avi", "mov", "webm", "3gp", "flv", "ts")) {
+        var videoThumbnail by remember(item.path) {
+            mutableStateOf(MediaThumbnailLoader.getCachedThumbnail(item.path))
+        }
+
+        LaunchedEffect(item.path) {
+            if (videoThumbnail == null) {
+                videoThumbnail = MediaThumbnailLoader.loadVideoThumbnail(item.file)
+            }
+        }
+
+        if (videoThumbnail != null) {
+            Box(
+                modifier = modifier
+                    .size(44.dp)
+                    .clip(RoundedCornerShape(12.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Image(
+                    bitmap = videoThumbnail!!.asImageBitmap(),
+                    contentDescription = item.name,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+                // Small video play badge overlay
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(2.dp)
+                        .size(16.dp)
+                        .clip(CircleShape)
+                        .background(Color.Black.copy(alpha = 0.7f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.PlayArrow,
+                        contentDescription = "Video",
+                        tint = Color.White,
+                        modifier = Modifier.size(11.dp)
+                    )
+                }
+            }
+        } else {
+            DefaultIconBox(
+                icon = Icons.Default.VideoFile,
+                tint = CategoryVideos,
                 modifier = modifier
             )
         }

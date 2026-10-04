@@ -37,11 +37,13 @@ import androidx.compose.material.icons.filled.ViewAgenda
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -71,6 +73,7 @@ import com.example.ui.theme.CategoryApks
 import com.example.ui.theme.CategoryVideos
 import com.example.util.FileUtils
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CategoryFilesScreen(
     category: FileCategory,
@@ -79,6 +82,7 @@ fun CategoryFilesScreen(
     selectedItems: Set<FileItem>,
     viewMode: ViewMode = ViewMode.LIST,
     onViewModeChange: (ViewMode) -> Unit = {},
+    onRefresh: () -> Unit = {},
     searchQuery: String,
     onItemClick: (FileItem) -> Unit,
     onItemLongClick: (FileItem) -> Unit,
@@ -283,129 +287,138 @@ fun CategoryFilesScreen(
             }
         }
 
-        when {
-            isLoading && displayFiles.isNullOrEmpty() -> {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        CircularProgressIndicator(
-                            color = categoryColor,
-                            modifier = Modifier.size(40.dp)
-                        )
-                        Spacer(modifier = Modifier.height(14.dp))
-                        Text(
-                            text = "Scanning device for $categoryTitle…",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-            }
-
-            displayFiles.isNullOrEmpty() -> {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier.padding(24.dp)
+        PullToRefreshBox(
+            isRefreshing = isLoading,
+            onRefresh = onRefresh,
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth()
+                .testTag("category_pull_refresh")
+        ) {
+            when {
+                isLoading && displayFiles.isNullOrEmpty() -> {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Icon(
-                            imageVector = categoryIcon,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f),
-                            modifier = Modifier.size(64.dp)
-                        )
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Text(
-                            text = if (searchQuery.isNotBlank()) {
-                                stringResource(R.string.no_results_found, searchQuery)
-                            } else {
-                                "No $categoryTitle found on storage"
-                            },
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            CircularProgressIndicator(
+                                color = categoryColor,
+                                modifier = Modifier.size(40.dp)
+                            )
+                            Spacer(modifier = Modifier.height(14.dp))
+                            Text(
+                                text = "Scanning device for $categoryTitle…",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
                 }
-            }
 
-            else -> {
-                when (viewMode) {
-                    ViewMode.GRID -> {
-                        LazyVerticalGrid(
-                            columns = GridCells.Adaptive(minSize = 105.dp),
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .testTag("category_files_grid"),
-                            contentPadding = PaddingValues(start = 12.dp, end = 12.dp, top = 6.dp, bottom = 96.dp),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                displayFiles.isNullOrEmpty() -> {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.padding(24.dp)
                         ) {
-                            items(
-                                items = displayFiles,
-                                key = { it.path }
-                            ) { item ->
-                                val isSelected = selectedItems.contains(item)
-                                FileItemGridCard(
-                                    item = item,
-                                    isSelected = isSelected,
-                                    isInSelectionMode = selectedItems.isNotEmpty(),
-                                    onClick = { onItemClick(item) },
-                                    onLongClick = { onItemLongClick(item) }
-                                )
-                            }
+                            Icon(
+                                imageVector = categoryIcon,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f),
+                                modifier = Modifier.size(64.dp)
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Text(
+                                text = if (searchQuery.isNotBlank()) {
+                                    stringResource(R.string.no_results_found, searchQuery)
+                                } else {
+                                    "No $categoryTitle found on storage"
+                                },
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
                     }
+                }
 
-                    ViewMode.DETAILED_LIST -> {
-                        LazyColumn(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .testTag("category_files_detailed_list"),
-                            contentPadding = PaddingValues(top = 4.dp, bottom = 96.dp)
-                        ) {
-                            items(
-                                items = displayFiles,
-                                key = { it.path },
-                                contentType = { it.extension }
-                            ) { item ->
-                                val isSelected = selectedItems.contains(item)
-                                FileItemDetailedRow(
-                                    item = item,
-                                    isSelected = isSelected,
-                                    isInSelectionMode = selectedItems.isNotEmpty(),
-                                    onClick = { onItemClick(item) },
-                                    onLongClick = { onItemLongClick(item) }
-                                )
+                else -> {
+                    when (viewMode) {
+                        ViewMode.GRID -> {
+                            LazyVerticalGrid(
+                                columns = GridCells.Adaptive(minSize = 105.dp),
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .testTag("category_files_grid"),
+                                contentPadding = PaddingValues(start = 12.dp, end = 12.dp, top = 6.dp, bottom = 96.dp),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                items(
+                                    items = displayFiles,
+                                    key = { it.path }
+                                ) { item ->
+                                    val isSelected = selectedItems.contains(item)
+                                    FileItemGridCard(
+                                        item = item,
+                                        isSelected = isSelected,
+                                        isInSelectionMode = selectedItems.isNotEmpty(),
+                                        onClick = { onItemClick(item) },
+                                        onLongClick = { onItemLongClick(item) }
+                                    )
+                                }
                             }
                         }
-                    }
 
-                    ViewMode.LIST -> {
-                        LazyColumn(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .testTag("category_files_list"),
-                            contentPadding = PaddingValues(top = 4.dp, bottom = 96.dp)
-                        ) {
-                            items(
-                                items = displayFiles,
-                                key = { it.path },
-                                contentType = { it.extension }
-                            ) { item ->
-                                val isSelected = selectedItems.contains(item)
-                                FileItemRow(
-                                    item = item,
-                                    isSelected = isSelected,
-                                    isInSelectionMode = selectedItems.isNotEmpty(),
-                                    showPath = true,
-                                    onClick = { onItemClick(item) },
-                                    onLongClick = { onItemLongClick(item) }
-                                )
+                        ViewMode.DETAILED_LIST -> {
+                            LazyColumn(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .testTag("category_files_detailed_list"),
+                                contentPadding = PaddingValues(top = 4.dp, bottom = 96.dp)
+                            ) {
+                                items(
+                                    items = displayFiles,
+                                    key = { it.path },
+                                    contentType = { it.extension }
+                                ) { item ->
+                                    val isSelected = selectedItems.contains(item)
+                                    FileItemDetailedRow(
+                                        item = item,
+                                        isSelected = isSelected,
+                                        isInSelectionMode = selectedItems.isNotEmpty(),
+                                        onClick = { onItemClick(item) },
+                                        onLongClick = { onItemLongClick(item) }
+                                    )
+                                }
+                            }
+                        }
+
+                        ViewMode.LIST -> {
+                            LazyColumn(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .testTag("category_files_list"),
+                                contentPadding = PaddingValues(top = 4.dp, bottom = 96.dp)
+                            ) {
+                                items(
+                                    items = displayFiles,
+                                    key = { it.path },
+                                    contentType = { it.extension }
+                                ) { item ->
+                                    val isSelected = selectedItems.contains(item)
+                                    FileItemRow(
+                                        item = item,
+                                        isSelected = isSelected,
+                                        isInSelectionMode = selectedItems.isNotEmpty(),
+                                        showPath = true,
+                                        onClick = { onItemClick(item) },
+                                        onLongClick = { onItemLongClick(item) }
+                                    )
+                                }
                             }
                         }
                     }

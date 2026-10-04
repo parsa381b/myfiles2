@@ -158,6 +158,9 @@
     <string name="sorting_preference">Sorting preference</string>
     <string name="remember_folder_sort">Remember folder sort</string>
     <string name="remember_folder_sort_desc">Save custom sort for each folder individually (default: A to Z)</string>
+    <string name="view_preference">View preference</string>
+    <string name="remember_folder_view">Remember folder view</string>
+    <string name="remember_folder_view_desc">Save custom view mode for each folder individually (List, Grid, Detailed List)</string>
     <string name="create_file">Create file</string>
     <string name="new_file_title">Create new file</string>
     <string name="phone_info">Phone Info</string>

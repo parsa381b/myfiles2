@@ -49,6 +49,12 @@ class FileViewModel(
     private val _rememberFolderSort = MutableStateFlow(prefs.getBoolean("pref_remember_folder_sort", false))
     val rememberFolderSort: StateFlow<Boolean> = _rememberFolderSort.asStateFlow()
 
+    private val _rememberFolderView = MutableStateFlow(prefs.getBoolean("pref_remember_folder_view", false))
+    val rememberFolderView: StateFlow<Boolean> = _rememberFolderView.asStateFlow()
+
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
+
     private val _trashItems = MutableStateFlow<List<com.example.data.model.TrashItem>>(emptyList())
     val trashItems: StateFlow<List<com.example.data.model.TrashItem>> = _trashItems.asStateFlow()
 
@@ -100,6 +106,10 @@ class FileViewModel(
     fun setViewMode(mode: com.example.data.model.ViewMode) {
         _viewMode.value = mode
         prefs.edit().putString("pref_view_mode", mode.name).apply()
+        val curr = _currentDirectory.value
+        if (_rememberFolderView.value && curr != null) {
+            saveViewModeForFolder(curr, mode)
+        }
     }
 
     private val _activeCategory = MutableStateFlow<FileCategory?>(null)
@@ -189,6 +199,34 @@ class FileViewModel(
         prefs.edit().putString("folder_sort_$pathKey", option.name).apply()
     }
 
+    fun setRememberFolderView(enabled: Boolean) {
+        _rememberFolderView.value = enabled
+        prefs.edit().putBoolean("pref_remember_folder_view", enabled).apply()
+        val curr = _currentDirectory.value
+        if (enabled && curr != null) {
+            _viewMode.value = getViewModeForFolder(curr)
+        }
+    }
+
+    fun getViewModeForFolder(dir: File): com.example.data.model.ViewMode {
+        val pathKey = try { dir.canonicalPath } catch (_: Exception) { dir.absolutePath }
+        val savedName = prefs.getString("folder_view_$pathKey", null)
+        return if (savedName != null) {
+            try {
+                com.example.data.model.ViewMode.valueOf(savedName)
+            } catch (_: Exception) {
+                _viewMode.value
+            }
+        } else {
+            _viewMode.value
+        }
+    }
+
+    private fun saveViewModeForFolder(dir: File, mode: com.example.data.model.ViewMode) {
+        val pathKey = try { dir.canonicalPath } catch (_: Exception) { dir.absolutePath }
+        prefs.edit().putString("folder_view_$pathKey", mode.name).apply()
+    }
+
     fun loadTrashItems() {
         viewModelScope.launch {
             trashRepository.getTrashItems().onSuccess {
@@ -213,6 +251,9 @@ class FileViewModel(
         clearSearch()
         if (_rememberFolderSort.value) {
             _sortOption.value = getSortForFolder(directory)
+        }
+        if (_rememberFolderView.value) {
+            _viewMode.value = getViewModeForFolder(directory)
         }
         loadDirectory(directory)
     }
@@ -283,12 +324,27 @@ class FileViewModel(
     }
 
     fun refreshCurrentDirectory() {
-        if (_activeCategory.value != null) {
-            refreshCategory()
-        } else if (_currentDirectory.value != null) {
-            loadDirectory(_currentDirectory.value!!)
-        } else {
-            refreshStorageVolumes()
+        viewModelScope.launch {
+            _isRefreshing.value = true
+            if (_activeCategory.value != null) {
+                val cat = _activeCategory.value!!
+                val items = repository.getCategoryFiles(
+                    context = getApplication(),
+                    category = cat,
+                    sortOption = _sortOption.value,
+                    showHiddenFiles = _showHiddenFiles.value
+                )
+                _categoryFiles.value = items
+            } else if (_currentDirectory.value != null) {
+                repository.getFilesInDirectory(_currentDirectory.value!!, _sortOption.value, _showHiddenFiles.value)
+                    .onSuccess { _uiState.value = UiState.Success(it) }
+                    .onFailure { _uiState.value = UiState.Error(it.localizedMessage ?: "Cannot access folder") }
+            } else {
+                _storageVolumes.value = repository.getStorageVolumes(getApplication())
+                loadTrashItems()
+            }
+            delay(350)
+            _isRefreshing.value = false
         }
     }
 

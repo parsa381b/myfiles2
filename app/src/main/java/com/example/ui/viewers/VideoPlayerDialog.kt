@@ -1,9 +1,14 @@
 package com.example.ui.viewers
 
-import android.widget.VideoView
+import android.graphics.Bitmap
+import android.graphics.SurfaceTexture
+import android.media.MediaPlayer
+import android.view.Surface
+import android.view.TextureView
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -31,6 +36,7 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Replay10
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -50,6 +56,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -61,6 +69,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.example.R
 import com.example.util.FileUtils
+import com.example.util.MediaThumbnailLoader
 import kotlinx.coroutines.delay
 import java.io.File
 import java.util.Locale
@@ -72,21 +81,35 @@ fun VideoPlayerDialog(
 ) {
     val context = LocalContext.current
     var isPlaying by remember { mutableStateOf(false) }
+    var isPrepared by remember { mutableStateOf(false) }
     var currentPosition by remember { mutableIntStateOf(0) }
     var duration by remember { mutableIntStateOf(0) }
     var showControls by remember { mutableStateOf(true) }
     var playbackError by remember { mutableStateOf(false) }
-    var videoViewRef by remember { mutableStateOf<VideoView?>(null) }
+    var mediaPlayerRef by remember { mutableStateOf<MediaPlayer?>(null) }
+
+    // Preload video thumbnail for immediate preview
+    var thumbnail by remember(file.absolutePath) {
+        mutableStateOf<Bitmap?>(MediaThumbnailLoader.getCachedThumbnail(file.absolutePath))
+    }
+
+    LaunchedEffect(file.absolutePath) {
+        if (thumbnail == null) {
+            thumbnail = MediaThumbnailLoader.loadVideoThumbnail(file)
+        }
+    }
 
     // Auto-update position while playing
     LaunchedEffect(isPlaying) {
         while (isPlaying) {
-            videoViewRef?.let { vv ->
-                if (vv.isPlaying) {
-                    currentPosition = vv.currentPosition
-                }
+            mediaPlayerRef?.let { mp ->
+                try {
+                    if (mp.isPlaying) {
+                        currentPosition = mp.currentPosition
+                    }
+                } catch (_: Exception) {}
             }
-            delay(350)
+            delay(300)
         }
     }
 
@@ -100,7 +123,11 @@ fun VideoPlayerDialog(
 
     DisposableEffect(Unit) {
         onDispose {
-            videoViewRef?.stopPlayback()
+            try {
+                mediaPlayerRef?.stop()
+                mediaPlayerRef?.release()
+            } catch (_: Exception) {}
+            mediaPlayerRef = null
         }
     }
 
@@ -125,25 +152,69 @@ fun VideoPlayerDialog(
                 .testTag("video_player_dialog"),
             contentAlignment = Alignment.Center
         ) {
+            // TextureView integrates into Compose hierarchy without SurfaceView punch-through issues
             AndroidView(
                 factory = { ctx ->
-                    VideoView(ctx).apply {
-                        setVideoPath(file.absolutePath)
-                        setOnPreparedListener { mp ->
-                            duration = mp.duration
-                            mp.isLooping = true
-                            start()
-                            isPlaying = true
+                    TextureView(ctx).apply {
+                        surfaceTextureListener = object : TextureView.SurfaceTextureListener {
+                            override fun onSurfaceTextureAvailable(surface: SurfaceTexture, width: Int, height: Int) {
+                                val mp = MediaPlayer().apply {
+                                    try {
+                                        setSurface(Surface(surface))
+                                        setDataSource(file.absolutePath)
+                                        setOnPreparedListener { player ->
+                                            duration = player.duration
+                                            player.isLooping = true
+                                            player.start()
+                                            isPlaying = true
+                                            isPrepared = true
+                                        }
+                                        setOnErrorListener { _, _, _ ->
+                                            playbackError = true
+                                            true
+                                        }
+                                        prepareAsync()
+                                    } catch (_: Exception) {
+                                        playbackError = true
+                                    }
+                                }
+                                mediaPlayerRef = mp
+                            }
+
+                            override fun onSurfaceTextureSizeChanged(surface: SurfaceTexture, width: Int, height: Int) {}
+
+                            override fun onSurfaceTextureDestroyed(surface: SurfaceTexture): Boolean {
+                                try {
+                                    mediaPlayerRef?.stop()
+                                    mediaPlayerRef?.release()
+                                } catch (_: Exception) {}
+                                mediaPlayerRef = null
+                                return true
+                            }
+
+                            override fun onSurfaceTextureUpdated(surface: SurfaceTexture) {}
                         }
-                        setOnErrorListener { _, _, _ ->
-                            playbackError = true
-                            true
-                        }
-                        videoViewRef = this
                     }
                 },
                 modifier = Modifier.fillMaxSize()
             )
+
+            // Video Thumbnail Preview shown while buffering or loading
+            if (!isPrepared && !playbackError) {
+                if (thumbnail != null) {
+                    Image(
+                        bitmap = thumbnail!!.asImageBitmap(),
+                        contentDescription = "Video Preview",
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
+                CircularProgressIndicator(
+                    color = MaterialTheme.colorScheme.primary,
+                    strokeWidth = 3.dp,
+                    modifier = Modifier.size(44.dp)
+                )
+            }
 
             if (playbackError) {
                 Surface(
@@ -161,8 +232,10 @@ fun VideoPlayerDialog(
                             style = MaterialTheme.typography.bodyLarge
                         )
                         Spacer(modifier = Modifier.height(14.dp))
-                        Button(onClick = { FileUtils.openFile(context, file) }) {
-                            Text(stringResource(R.string.open_with_external))
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Button(onClick = { FileUtils.openWithAnotherApp(context, file) }) {
+                                Text(stringResource(R.string.open_with_another_app))
+                            }
                         }
                     }
                 }
@@ -180,13 +253,13 @@ fun VideoPlayerDialog(
                         .fillMaxSize()
                         .background(Color.Black.copy(alpha = 0.45f))
                 ) {
-                    // Top App Bar in Overlay
+                    // Top Bar in Overlay
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .align(Alignment.TopCenter)
                             .statusBarsPadding()
-                            .padding(horizontal = 8.dp, vertical = 8.dp),
+                            .padding(horizontal = 8.dp, vertical = 6.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         IconButton(
@@ -200,16 +273,16 @@ fun VideoPlayerDialog(
                             )
                         }
 
+                        Spacer(modifier = Modifier.width(8.dp))
+
                         Text(
                             text = file.name,
                             style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold,
+                            fontWeight = FontWeight.Bold,
                             color = Color.White,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier
-                                .weight(1f)
-                                .padding(horizontal = 8.dp)
+                            modifier = Modifier.weight(1f)
                         )
 
                         IconButton(
@@ -245,10 +318,12 @@ fun VideoPlayerDialog(
                     ) {
                         IconButton(
                             onClick = {
-                                videoViewRef?.let { vv ->
-                                    val newPos = (vv.currentPosition - 10000).coerceAtLeast(0)
-                                    vv.seekTo(newPos)
-                                    currentPosition = newPos
+                                mediaPlayerRef?.let { mp ->
+                                    try {
+                                        val newPos = (mp.currentPosition - 10000).coerceAtLeast(0)
+                                        mp.seekTo(newPos)
+                                        currentPosition = newPos
+                                    } catch (_: Exception) {}
                                 }
                             },
                             modifier = Modifier.size(48.dp)
@@ -267,14 +342,16 @@ fun VideoPlayerDialog(
                                 .clip(CircleShape)
                                 .background(Color.White.copy(alpha = 0.25f))
                                 .clickable {
-                                    videoViewRef?.let { vv ->
-                                        if (vv.isPlaying) {
-                                            vv.pause()
-                                            isPlaying = false
-                                        } else {
-                                            vv.start()
-                                            isPlaying = true
-                                        }
+                                    mediaPlayerRef?.let { mp ->
+                                        try {
+                                            if (mp.isPlaying) {
+                                                mp.pause()
+                                                isPlaying = false
+                                            } else {
+                                                mp.start()
+                                                isPlaying = true
+                                            }
+                                        } catch (_: Exception) {}
                                     }
                                 }
                                 .testTag("video_player_play_pause"),
@@ -290,10 +367,12 @@ fun VideoPlayerDialog(
 
                         IconButton(
                             onClick = {
-                                videoViewRef?.let { vv ->
-                                    val newPos = (vv.currentPosition + 10000).coerceAtMost(duration)
-                                    vv.seekTo(newPos)
-                                    currentPosition = newPos
+                                mediaPlayerRef?.let { mp ->
+                                    try {
+                                        val newPos = (mp.currentPosition + 10000).coerceAtMost(duration)
+                                        mp.seekTo(newPos)
+                                        currentPosition = newPos
+                                    } catch (_: Exception) {}
                                 }
                             },
                             modifier = Modifier.size(48.dp)
@@ -335,7 +414,9 @@ fun VideoPlayerDialog(
                             value = currentPosition.toFloat(),
                             onValueChange = { newPos ->
                                 currentPosition = newPos.toInt()
-                                videoViewRef?.seekTo(newPos.toInt())
+                                try {
+                                    mediaPlayerRef?.seekTo(newPos.toInt())
+                                } catch (_: Exception) {}
                             },
                             valueRange = 0f..(duration.toFloat().coerceAtLeast(1f)),
                             colors = SliderDefaults.colors(
@@ -360,8 +441,8 @@ private fun formatTime(millis: Int): String {
     val minutes = (totalSeconds % 3600) / 60
     val seconds = totalSeconds % 60
     return if (hours > 0) {
-        String.format(Locale.US, "%d:%02d:%02d", hours, minutes, seconds)
+        String.format(Locale.getDefault(), "%d:%02d:%02d", hours, minutes, seconds)
     } else {
-        String.format(Locale.US, "%02d:%02d", minutes, seconds)
+        String.format(Locale.getDefault(), "%02d:%02d", minutes, seconds)
     }
 }

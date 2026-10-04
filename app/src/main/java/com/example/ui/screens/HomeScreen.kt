@@ -29,11 +29,13 @@ import androidx.compose.material.icons.filled.Smartphone
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.Usb
 import androidx.compose.material.icons.filled.VideoFile
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -44,7 +46,10 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.R
 import com.example.data.model.FileCategory
 import com.example.data.model.StorageInfo
@@ -54,12 +59,15 @@ import com.example.ui.theme.*
 import com.example.util.FileUtils
 import java.io.File
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     storages: List<StorageInfo>,
     hasStoragePermission: Boolean,
     trashEnabled: Boolean = true,
     trashCount: Int = 0,
+    isRefreshing: Boolean = false,
+    onRefresh: () -> Unit = {},
     onGrantPermission: () -> Unit,
     onSelectStorage: (File) -> Unit,
     onCategoryClick: (FileCategory) -> Unit,
@@ -67,13 +75,20 @@ fun HomeScreen(
     onOpenAdvancedFeatures: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    LazyColumn(
+    PullToRefreshBox(
+        isRefreshing = isRefreshing,
+        onRefresh = onRefresh,
         modifier = modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .padding(horizontal = 16.dp),
-        contentPadding = PaddingValues(top = 8.dp, bottom = 48.dp)
+            .testTag("home_screen_pull_refresh")
     ) {
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
+                .padding(horizontal = 16.dp),
+            contentPadding = PaddingValues(top = 8.dp, bottom = 48.dp)
+        ) {
         if (!hasStoragePermission) {
             item {
                 PermissionBanner(onGrantClick = onGrantPermission)
@@ -145,6 +160,7 @@ fun HomeScreen(
             )
         }
     }
+}
 }
 
 @Composable
@@ -277,69 +293,95 @@ private fun TrashShortcutCard(
 @Composable
 private fun CategoriesSection(onCategoryClick: (FileCategory) -> Unit) {
     Surface(
-        shape = RoundedCornerShape(24.dp),
+        shape = RoundedCornerShape(22.dp),
         color = MaterialTheme.colorScheme.surface,
         tonalElevation = 2.dp,
         modifier = Modifier
             .fillMaxWidth()
             .testTag("categories_section")
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 10.dp, horizontal = 10.dp)
+        ) {
+            // Row 1: Images and Videos
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceAround
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 CategoryGridItem(
                     name = stringResource(R.string.images),
                     icon = Icons.Default.Image,
                     color = CategoryImages,
-                    testTag = "category_images"
+                    testTag = "category_images",
+                    modifier = Modifier.weight(1f)
                 ) {
                     onCategoryClick(FileCategory.IMAGES)
                 }
+                Spacer(modifier = Modifier.width(6.dp))
                 CategoryGridItem(
                     name = stringResource(R.string.videos),
                     icon = Icons.Default.VideoFile,
                     color = CategoryVideos,
-                    testTag = "category_videos"
+                    testTag = "category_videos",
+                    modifier = Modifier.weight(1f)
                 ) {
                     onCategoryClick(FileCategory.VIDEOS)
                 }
+            }
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            // Row 2: Audio and Documents
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 CategoryGridItem(
                     name = stringResource(R.string.audio),
                     icon = Icons.Default.AudioFile,
                     color = CategoryAudio,
-                    testTag = "category_audio"
+                    testTag = "category_audio",
+                    modifier = Modifier.weight(1f)
                 ) {
                     onCategoryClick(FileCategory.AUDIO)
                 }
-            }
-            Spacer(modifier = Modifier.height(18.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceAround
-            ) {
+                Spacer(modifier = Modifier.width(6.dp))
                 CategoryGridItem(
                     name = stringResource(R.string.documents),
                     icon = Icons.Default.Description,
                     color = CategoryDocs,
-                    testTag = "category_docs"
+                    testTag = "category_docs",
+                    modifier = Modifier.weight(1f)
                 ) {
                     onCategoryClick(FileCategory.DOCUMENTS)
                 }
+            }
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            // Row 3: Downloads and Installation files
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 CategoryGridItem(
                     name = stringResource(R.string.downloads),
                     icon = Icons.Default.Download,
                     color = CategoryDownloads,
-                    testTag = "category_downloads"
+                    testTag = "category_downloads",
+                    modifier = Modifier.weight(1f)
                 ) {
                     onCategoryClick(FileCategory.DOWNLOADS)
                 }
+                Spacer(modifier = Modifier.width(6.dp))
                 CategoryGridItem(
                     name = stringResource(R.string.installation_files),
                     icon = Icons.Default.Android,
                     color = CategoryApks,
-                    testTag = "category_apks"
+                    testTag = "category_apks",
+                    modifier = Modifier.weight(1f)
                 ) {
                     onCategoryClick(FileCategory.INSTALLATION_FILES)
                 }
@@ -354,36 +396,40 @@ private fun CategoryGridItem(
     icon: ImageVector,
     color: Color,
     testTag: String,
+    modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier
-            .clip(RoundedCornerShape(16.dp))
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = modifier
+            .clip(RoundedCornerShape(14.dp))
             .clickable(onClick = onClick)
-            .padding(8.dp)
+            .padding(horizontal = 8.dp, vertical = 8.dp)
             .testTag(testTag)
     ) {
         Box(
             modifier = Modifier
-                .size(54.dp)
-                .clip(RoundedCornerShape(18.dp))
-                .background(color.copy(alpha = 0.12f)),
+                .size(42.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(color.copy(alpha = 0.14f)),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = icon,
-                contentDescription = name,
+                contentDescription = null,
                 tint = color,
-                modifier = Modifier.size(28.dp)
+                modifier = Modifier.size(24.dp)
             )
         }
-        Spacer(modifier = Modifier.height(6.dp))
+        Spacer(modifier = Modifier.width(10.dp))
         Text(
             text = name,
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.Medium,
-            color = MaterialTheme.colorScheme.onSurface
+            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.5.sp),
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f)
         )
     }
 }

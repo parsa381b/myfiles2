@@ -37,12 +37,14 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -65,6 +67,7 @@ import com.example.ui.components.FileItemRow
 import com.example.ui.viewmodel.UiState
 import java.io.File
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BrowserScreen(
     currentDirectory: File,
@@ -73,6 +76,7 @@ fun BrowserScreen(
     selectedItems: Set<FileItem>,
     viewMode: ViewMode = ViewMode.LIST,
     onViewModeChange: (ViewMode) -> Unit = {},
+    isRefreshing: Boolean = false,
     searchQuery: String,
     searchResults: List<FileItem>?,
     isSearching: Boolean,
@@ -129,8 +133,15 @@ fun BrowserScreen(
             return
         }
 
-        // Standard directory view
-        Box(modifier = Modifier.fillMaxSize()) {
+        // Standard directory view with Pull-to-Refresh
+        PullToRefreshBox(
+            isRefreshing = isRefreshing,
+            onRefresh = onRefresh,
+            modifier = Modifier
+                .fillMaxSize()
+                .testTag("browser_pull_refresh")
+        ) {
+            Box(modifier = Modifier.fillMaxSize()) {
             when (uiState) {
                 is UiState.Loading -> {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -252,6 +263,7 @@ fun BrowserScreen(
                 }
             }
         }
+    }
     }
 }
 

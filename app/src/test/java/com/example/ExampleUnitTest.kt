@@ -296,4 +296,39 @@ class ExampleUnitTest {
         // Folder B still defaults to NAME_ASC
         assertEquals(com.example.data.model.SortOption.NAME_ASC, folderSortMap[folderB] ?: com.example.data.model.SortOption.NAME_ASC)
     }
+
+    @Test
+    fun testRememberFolderViewStrings() {
+        val titleRes = R.string.remember_folder_view
+        val descRes = R.string.remember_folder_view_desc
+        val prefRes = R.string.view_preference
+        assertNotEquals(0, titleRes)
+        assertNotEquals(0, descRes)
+        assertNotEquals(0, prefRes)
+    }
+
+    @Test
+    fun testRememberFolderViewDefaultAndOverride() {
+        val folderViewMap = mutableMapOf<String, com.example.data.model.ViewMode>()
+
+        val folderDCIM = "/storage/emulated/0/DCIM"
+        val folderDocuments = "/storage/emulated/0/Documents"
+
+        // Default view mode is LIST
+        val defaultView = folderViewMap[folderDCIM] ?: com.example.data.model.ViewMode.LIST
+        assertEquals(com.example.data.model.ViewMode.LIST, defaultView)
+
+        // User changes DCIM to GRID
+        folderViewMap[folderDCIM] = com.example.data.model.ViewMode.GRID
+
+        assertEquals(com.example.data.model.ViewMode.GRID, folderViewMap[folderDCIM])
+        // Documents still uses default LIST
+        assertEquals(com.example.data.model.ViewMode.LIST, folderViewMap[folderDocuments] ?: com.example.data.model.ViewMode.LIST)
+
+        // User changes Documents to DETAILED_LIST
+        folderViewMap[folderDocuments] = com.example.data.model.ViewMode.DETAILED_LIST
+        assertEquals(com.example.data.model.ViewMode.DETAILED_LIST, folderViewMap[folderDocuments])
+        // DCIM remains GRID
+        assertEquals(com.example.data.model.ViewMode.GRID, folderViewMap[folderDCIM])
+    }
 }

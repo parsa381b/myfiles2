@@ -291,6 +291,8 @@ fun SettingsDialog(
     onShowHiddenFilesToggled: (Boolean) -> Unit,
     rememberFolderSort: Boolean = false,
     onRememberFolderSortToggled: (Boolean) -> Unit = {},
+    rememberFolderView: Boolean = false,
+    onRememberFolderViewToggled: (Boolean) -> Unit = {},
     onDismiss: () -> Unit
 ) {
     AlertDialog(
@@ -459,6 +461,46 @@ fun SettingsDialog(
                         checked = rememberFolderSort,
                         onCheckedChange = onRememberFolderSortToggled,
                         modifier = Modifier.testTag("remember_folder_sort_switch")
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                Spacer(modifier = Modifier.height(14.dp))
+
+                Text(
+                    text = stringResource(R.string.view_preference),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(bottom = 6.dp)
+                )
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .clickable { onRememberFolderViewToggled(!rememberFolderView) }
+                        .padding(vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = stringResource(R.string.remember_folder_view),
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = stringResource(R.string.remember_folder_view_desc),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Switch(
+                        checked = rememberFolderView,
+                        onCheckedChange = onRememberFolderViewToggled,
+                        modifier = Modifier.testTag("remember_folder_view_switch")
                     )
                 }
             }

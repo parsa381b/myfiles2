@@ -196,6 +196,8 @@ private fun MainContent(viewModel: FileViewModel) {
     val trashItems by viewModel.trashItems.collectAsStateWithLifecycle()
     val showHiddenFiles by viewModel.showHiddenFiles.collectAsStateWithLifecycle()
     val rememberFolderSort by viewModel.rememberFolderSort.collectAsStateWithLifecycle()
+    val rememberFolderView by viewModel.rememberFolderView.collectAsStateWithLifecycle()
+    val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
 
     val activeCategory by viewModel.activeCategory.collectAsStateWithLifecycle()
     val categoryFiles by viewModel.categoryFiles.collectAsStateWithLifecycle()
@@ -350,7 +352,8 @@ private fun MainContent(viewModel: FileViewModel) {
                         }
                     },
                     actions = {
-                        if (!isSearchActive) {
+                        val isHomePage = currentDir == null && activeCategory == null && !isTrashOpen && !isAdvancedFeaturesOpen && !isBatchRenameOpen && searchQuery.isEmpty()
+                        if (!isSearchActive && isHomePage) {
                             IconButton(
                                 onClick = { isSearchActive = true },
                                 modifier = Modifier.testTag("button_search")
@@ -358,16 +361,17 @@ private fun MainContent(viewModel: FileViewModel) {
                                 Icon(Icons.Default.Search, contentDescription = "Search")
                             }
                             IconButton(
-                                onClick = { viewModel.refreshCurrentDirectory() },
-                                modifier = Modifier.testTag("button_refresh")
-                            ) {
-                                Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.retry))
-                            }
-                            IconButton(
                                 onClick = { showSettingsDialog = true },
                                 modifier = Modifier.testTag("button_settings")
                             ) {
                                 Icon(Icons.Default.Settings, contentDescription = stringResource(R.string.settings))
+                            }
+                        } else if (!isSearchActive) {
+                            IconButton(
+                                onClick = { isSearchActive = true },
+                                modifier = Modifier.testTag("button_search")
+                            ) {
+                                Icon(Icons.Default.Search, contentDescription = "Search")
                             }
                         } else if (searchQuery.isNotEmpty()) {
                             IconButton(onClick = { viewModel.clearSearch() }) {
@@ -666,6 +670,8 @@ private fun MainContent(viewModel: FileViewModel) {
                 onShowHiddenFilesToggled = { viewModel.setShowHiddenFiles(it) },
                 rememberFolderSort = rememberFolderSort,
                 onRememberFolderSortToggled = { viewModel.setRememberFolderSort(it) },
+                rememberFolderView = rememberFolderView,
+                onRememberFolderViewToggled = { viewModel.setRememberFolderView(it) },
                 onDismiss = { showSettingsDialog = false }
             )
         }
