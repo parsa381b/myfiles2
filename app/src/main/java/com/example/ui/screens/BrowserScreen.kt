@@ -12,22 +12,34 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Sort
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.CreateNewFolder
 import androidx.compose.material.icons.filled.Deselect
 import androidx.compose.material.icons.filled.FolderOpen
+import androidx.compose.material.icons.filled.NoteAdd
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SelectAll
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -55,6 +67,7 @@ fun BrowserScreen(
     onNavigate: (File) -> Unit,
     onNavigateHome: () -> Unit,
     onCreateFolder: () -> Unit,
+    onCreateFile: () -> Unit,
     onSelectAll: (List<FileItem>) -> Unit,
     onOpenSort: () -> Unit,
     onRefresh: () -> Unit,
@@ -102,66 +115,124 @@ fun BrowserScreen(
         }
 
         // Standard directory view
-        when (uiState) {
-            is UiState.Loading -> {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(38.dp)
-                    )
-                }
-            }
-
-            is UiState.Error -> {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(24.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            text = uiState.message,
-                            color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.bodyLarge
+        Box(modifier = Modifier.fillMaxSize()) {
+            when (uiState) {
+                is UiState.Loading -> {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(38.dp)
                         )
-                        Spacer(modifier = Modifier.height(12.dp))
-                        IconButton(onClick = onRefresh) {
-                            Icon(
-                                imageVector = Icons.Default.Refresh,
-                                contentDescription = stringResource(R.string.retry)
+                    }
+                }
+
+                is UiState.Error -> {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(24.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                text = uiState.message,
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodyLarge
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                            IconButton(onClick = onRefresh) {
+                                Icon(
+                                    imageVector = Icons.Default.Refresh,
+                                    contentDescription = stringResource(R.string.retry)
+                                )
+                            }
+                        }
+                    }
+                }
+
+                is UiState.Success -> {
+                    val files = uiState.items
+                    if (files.isEmpty()) {
+                        EmptyFolderView(
+                            onCreateFolder = onCreateFolder,
+                            onCreateFile = onCreateFile
+                        )
+                    } else {
+                        val isAllSelected = files.isNotEmpty() && files.all { it in selectedItems }
+
+                        Column(modifier = Modifier.fillMaxSize()) {
+                            BrowserToolbar(
+                                count = files.size,
+                                selectedCount = selectedItems.size,
+                                isAllSelected = isAllSelected,
+                                onCreateFolder = onCreateFolder,
+                                onCreateFile = onCreateFile,
+                                onSelectAll = { onSelectAll(files) },
+                                onOpenSort = onOpenSort
+                            )
+
+                            FileList(
+                                files = files,
+                                selectedItems = selectedItems,
+                                onItemClick = onItemClick,
+                                onItemLongClick = onItemLongClick
                             )
                         }
                     }
                 }
+
+                is UiState.Idle -> Unit
             }
 
-            is UiState.Success -> {
-                val files = uiState.items
-                if (files.isEmpty()) {
-                    EmptyFolderView()
-                } else {
-                    val isAllSelected = files.isNotEmpty() && files.all { it in selectedItems }
+            // Expandable FAB Menu for Creating Folder & File
+            if (selectedItems.isEmpty() && uiState is UiState.Success && uiState.items.isNotEmpty()) {
+                var fabExpanded by remember { mutableStateOf(false) }
 
-                    BrowserToolbar(
-                        count = files.size,
-                        selectedCount = selectedItems.size,
-                        isAllSelected = isAllSelected,
-                        onCreateFolder = onCreateFolder,
-                        onSelectAll = { onSelectAll(files) },
-                        onOpenSort = onOpenSort
-                    )
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(end = 16.dp, bottom = 24.dp),
+                    horizontalAlignment = Alignment.End,
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    if (fabExpanded) {
+                        ExtendedFloatingActionButton(
+                            onClick = {
+                                fabExpanded = false
+                                onCreateFolder()
+                            },
+                            icon = { Icon(Icons.Default.CreateNewFolder, contentDescription = null) },
+                            text = { Text(stringResource(R.string.create_folder)) },
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                            modifier = Modifier.testTag("fab_create_folder")
+                        )
+                        ExtendedFloatingActionButton(
+                            onClick = {
+                                fabExpanded = false
+                                onCreateFile()
+                            },
+                            icon = { Icon(Icons.Default.NoteAdd, contentDescription = null) },
+                            text = { Text(stringResource(R.string.create_file)) },
+                            containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+                            modifier = Modifier.testTag("fab_create_file")
+                        )
+                    }
 
-                    FileList(
-                        files = files,
-                        selectedItems = selectedItems,
-                        onItemClick = onItemClick,
-                        onItemLongClick = onItemLongClick
-                    )
+                    FloatingActionButton(
+                        onClick = { fabExpanded = !fabExpanded },
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                        modifier = Modifier.testTag("fab_add_menu")
+                    ) {
+                        Icon(
+                            imageVector = if (fabExpanded) Icons.Default.Close else Icons.Default.Add,
+                            contentDescription = if (fabExpanded) "Close" else "Create Item"
+                        )
+                    }
                 }
             }
-
-            is UiState.Idle -> Unit
         }
     }
 }
@@ -172,6 +243,7 @@ private fun BrowserToolbar(
     selectedCount: Int,
     isAllSelected: Boolean,
     onCreateFolder: () -> Unit,
+    onCreateFile: () -> Unit,
     onSelectAll: () -> Unit,
     onOpenSort: () -> Unit
 ) {
@@ -217,6 +289,18 @@ private fun BrowserToolbar(
                 Icon(
                     imageVector = Icons.Default.CreateNewFolder,
                     contentDescription = stringResource(R.string.create_folder),
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+            IconButton(
+                onClick = onCreateFile,
+                modifier = Modifier
+                    .size(36.dp)
+                    .testTag("button_create_file")
+            ) {
+                Icon(
+                    imageVector = Icons.Default.NoteAdd,
+                    contentDescription = stringResource(R.string.create_file),
                     modifier = Modifier.size(20.dp)
                 )
             }
@@ -295,7 +379,10 @@ private fun FileList(
 }
 
 @Composable
-private fun EmptyFolderView() {
+private fun EmptyFolderView(
+    onCreateFolder: () -> Unit,
+    onCreateFile: () -> Unit
+) {
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
@@ -316,6 +403,36 @@ private fun EmptyFolderView() {
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+            Spacer(modifier = Modifier.height(20.dp))
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Button(
+                    onClick = onCreateFolder,
+                    modifier = Modifier.testTag("empty_state_button_create_folder")
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.CreateNewFolder,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(stringResource(R.string.create_folder))
+                }
+                OutlinedButton(
+                    onClick = onCreateFile,
+                    modifier = Modifier.testTag("empty_state_button_create_file")
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.NoteAdd,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(stringResource(R.string.create_file))
+                }
+            }
         }
     }
 }

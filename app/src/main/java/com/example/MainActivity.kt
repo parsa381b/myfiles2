@@ -210,6 +210,7 @@ private fun MainContent(viewModel: FileViewModel) {
     var isAdvancedFeaturesOpen by remember { mutableStateOf(false) }
     var showRationaleDialog by rememberSaveable { mutableStateOf(!hasPermission) }
     var showCreateFolderDialog by remember { mutableStateOf(false) }
+    var showCreateFileDialog by remember { mutableStateOf(false) }
     var showRenameDialog by remember { mutableStateOf(false) }
     var showDeleteConfirmDialog by remember { mutableStateOf(false) }
     var showSortDialog by remember { mutableStateOf(false) }
@@ -550,6 +551,7 @@ private fun MainContent(viewModel: FileViewModel) {
                     onNavigate = { viewModel.navigateTo(it) },
                     onNavigateHome = { viewModel.navigateToHome() },
                     onCreateFolder = { showCreateFolderDialog = true },
+                    onCreateFile = { showCreateFileDialog = true },
                     onSelectAll = { viewModel.selectAll(it) },
                     onOpenSort = { showSortDialog = true },
                     onRefresh = { viewModel.refreshCurrentDirectory() }
@@ -567,6 +569,19 @@ private fun MainContent(viewModel: FileViewModel) {
                 onConfirm = { name ->
                     viewModel.createFolder(name)
                     showCreateFolderDialog = false
+                }
+            )
+        }
+
+        if (showCreateFileDialog) {
+            TextInputDialog(
+                title = stringResource(R.string.new_file_title),
+                initialValue = "",
+                confirmButtonText = stringResource(R.string.create),
+                onDismiss = { showCreateFileDialog = false },
+                onConfirm = { name ->
+                    viewModel.createFile(name)
+                    showCreateFileDialog = false
                 }
             )
         }

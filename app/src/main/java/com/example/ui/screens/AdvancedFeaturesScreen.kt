@@ -24,6 +24,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.material.icons.filled.CleaningServices
 import androidx.compose.material.icons.filled.DriveFileRenameOutline
 import androidx.compose.material.icons.filled.FindInPage
+import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.material.icons.filled.PieChart
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Tune
@@ -57,7 +58,8 @@ import java.io.File
 enum class AdvancedSubScreen {
     HUB,
     STORAGE_USAGE,
-    DUPLICATE_FINDER
+    DUPLICATE_FINDER,
+    PHONE_INFO
 }
 
 @Composable
@@ -106,6 +108,13 @@ fun AdvancedFeaturesScreen(
                 onRescan = onScanDuplicates,
                 onDeleteDuplicates = onDeleteDuplicates,
                 onOpenFile = onOpenFile,
+                onNavigateBack = { subScreen = AdvancedSubScreen.HUB },
+                modifier = modifier
+            )
+        }
+
+        AdvancedSubScreen.PHONE_INFO -> {
+            PhoneInfoScreen(
                 onNavigateBack = { subScreen = AdvancedSubScreen.HUB },
                 modifier = modifier
             )
@@ -266,6 +275,31 @@ fun AdvancedFeaturesScreen(
                                 }
                             },
                             testTag = "card_duplicate_finder"
+                        )
+                    }
+
+                    item {
+                        Text(
+                            text = "System & Hardware",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onBackground,
+                            modifier = Modifier.padding(start = 4.dp, top = 8.dp)
+                        )
+                    }
+
+                    // Phone Info Card
+                    item {
+                        AdvancedFeaturePrimaryCard(
+                            title = stringResource(R.string.phone_info),
+                            description = stringResource(R.string.phone_info_subtitle),
+                            icon = Icons.Default.PhoneAndroid,
+                            accentColor = Color(0xFF6366F1),
+                            badgeText = "System Specs",
+                            onClick = {
+                                subScreen = AdvancedSubScreen.PHONE_INFO
+                            },
+                            testTag = "card_phone_info"
                         )
                     }
 

@@ -159,4 +159,8 @@
     <string name="sorting_preference">تنظیمات مرتب‌سازی</string>
     <string name="remember_folder_sort">به خاطر سپردن مرتب‌سازی هر پوشه</string>
     <string name="remember_folder_sort_desc">ذخیره نحوه مرتب‌سازی برای هر پوشه به صورت مجزا (پیش‌فرض: الف تا ی)</string>
+    <string name="create_file">ایجاد فایل</string>
+    <string name="new_file_title">ایجاد فایل جدید</string>
+    <string name="phone_info">مشخصات گوشی</string>
+    <string name="phone_info_subtitle">اطلاعات دستگاه، معماری پردازنده، سلامت باتری و صفحه‌نمایش</string>
 </resources>
