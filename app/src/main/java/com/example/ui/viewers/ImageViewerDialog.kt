@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.RotateRight
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.CircularProgressIndicator
@@ -178,6 +179,17 @@ fun ImageViewerDialog(
                         Icon(
                             imageVector = Icons.Default.RotateRight,
                             contentDescription = stringResource(R.string.rotate),
+                            tint = Color.White
+                        )
+                    }
+
+                    IconButton(
+                        onClick = { FileUtils.openWithAnotherApp(context, file) },
+                        modifier = Modifier.testTag("image_viewer_open_with")
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.OpenInNew,
+                            contentDescription = stringResource(R.string.open_with_another_app),
                             tint = Color.White
                         )
                     }

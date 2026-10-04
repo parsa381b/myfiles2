@@ -19,6 +19,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.FitScreen
 import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material.icons.filled.Nightlight
@@ -206,6 +207,17 @@ fun PdfViewerDialog(
                             modifier = Modifier.testTag("pdf_button_zoom_out")
                         ) {
                             Icon(Icons.Default.ZoomOut, contentDescription = "Zoom Out")
+                        }
+
+                        // Open in another app
+                        IconButton(
+                            onClick = { FileUtils.openWithAnotherApp(context, file) },
+                            modifier = Modifier.testTag("pdf_button_open_with")
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.OpenInNew,
+                                contentDescription = stringResource(R.string.open_with_another_app)
+                            )
                         }
 
                         // Share PDF

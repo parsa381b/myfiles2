@@ -24,6 +24,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.Forward10
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
@@ -210,6 +211,17 @@ fun VideoPlayerDialog(
                                 .weight(1f)
                                 .padding(horizontal = 8.dp)
                         )
+
+                        IconButton(
+                            onClick = { FileUtils.openWithAnotherApp(context, file) },
+                            modifier = Modifier.testTag("video_player_open_with")
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.OpenInNew,
+                                contentDescription = stringResource(R.string.open_with_another_app),
+                                tint = Color.White
+                            )
+                        }
 
                         IconButton(
                             onClick = { FileUtils.shareFiles(context, listOf(file)) },

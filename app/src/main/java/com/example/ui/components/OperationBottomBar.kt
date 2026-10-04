@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -7,8 +8,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
@@ -40,6 +43,8 @@ import com.example.data.model.OperationType
 fun OperationBottomBar(
     selectedCount: Int,
     canExtract: Boolean = false,
+    canOpenWith: Boolean = false,
+    onOpenWith: () -> Unit = {},
     onExtract: () -> Unit = {},
     onCopy: () -> Unit,
     onMove: () -> Unit,
@@ -47,6 +52,7 @@ fun OperationBottomBar(
     onRename: () -> Unit,
     onShare: () -> Unit,
     onDetails: () -> Unit,
+    onBatchRename: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Surface(
@@ -58,13 +64,23 @@ fun OperationBottomBar(
         shadowElevation = 12.dp,
         color = MaterialTheme.colorScheme.surface
     ) {
+        val scrollState = rememberScrollState()
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .horizontalScroll(scrollState)
                 .padding(horizontal = 8.dp, vertical = 6.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            if (canOpenWith) {
+                BottomBarActionItem(
+                    icon = Icons.AutoMirrored.Filled.OpenInNew,
+                    label = stringResource(R.string.open_with_another_app),
+                    onClick = onOpenWith,
+                    testTag = "action_open_with"
+                )
+            }
             if (canExtract) {
                 BottomBarActionItem(
                     icon = Icons.Default.Unarchive,
@@ -85,6 +101,20 @@ fun OperationBottomBar(
                 onClick = onMove,
                 testTag = "action_move"
             )
+            if (selectedCount == 1) {
+                BottomBarActionItem(
+                    icon = Icons.Default.DriveFileRenameOutline,
+                    label = stringResource(R.string.rename),
+                    onClick = onRename,
+                    testTag = "action_rename"
+                )
+            }
+            BottomBarActionItem(
+                icon = Icons.Default.DriveFileRenameOutline,
+                label = stringResource(R.string.batch_renamer),
+                onClick = onBatchRename,
+                testTag = "action_batch_rename"
+            )
             BottomBarActionItem(
                 icon = Icons.Default.Share,
                 label = stringResource(R.string.share),
@@ -99,12 +129,6 @@ fun OperationBottomBar(
                 testTag = "action_delete"
             )
             if (selectedCount == 1) {
-                BottomBarActionItem(
-                    icon = Icons.Default.DriveFileRenameOutline,
-                    label = stringResource(R.string.rename),
-                    onClick = onRename,
-                    testTag = "action_rename"
-                )
                 BottomBarActionItem(
                     icon = Icons.Default.Info,
                     label = stringResource(R.string.details),

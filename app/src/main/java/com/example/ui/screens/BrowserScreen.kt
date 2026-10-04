@@ -14,20 +14,29 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Sort
+import androidx.compose.material.icons.automirrored.filled.ViewList
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.CreateNewFolder
 import androidx.compose.material.icons.filled.Deselect
 import androidx.compose.material.icons.filled.FolderOpen
+import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.NoteAdd
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SelectAll
+import androidx.compose.material.icons.filled.ViewAgenda
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -48,7 +57,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.R
 import com.example.data.model.FileItem
+import com.example.data.model.ViewMode
 import com.example.ui.components.BreadcrumbBar
+import com.example.ui.components.FileItemDetailedRow
+import com.example.ui.components.FileItemGridCard
 import com.example.ui.components.FileItemRow
 import com.example.ui.viewmodel.UiState
 import java.io.File
@@ -59,6 +71,8 @@ fun BrowserScreen(
     rootDirectory: File?,
     uiState: UiState,
     selectedItems: Set<FileItem>,
+    viewMode: ViewMode = ViewMode.LIST,
+    onViewModeChange: (ViewMode) -> Unit = {},
     searchQuery: String,
     searchResults: List<FileItem>?,
     isSearching: Boolean,
@@ -106,6 +120,7 @@ fun BrowserScreen(
                 FileList(
                     files = searchResults,
                     selectedItems = selectedItems,
+                    viewMode = viewMode,
                     showPath = true,
                     onItemClick = onItemClick,
                     onItemLongClick = onItemLongClick
@@ -165,6 +180,8 @@ fun BrowserScreen(
                                 count = files.size,
                                 selectedCount = selectedItems.size,
                                 isAllSelected = isAllSelected,
+                                viewMode = viewMode,
+                                onViewModeChange = onViewModeChange,
                                 onCreateFolder = onCreateFolder,
                                 onCreateFile = onCreateFile,
                                 onSelectAll = { onSelectAll(files) },
@@ -174,6 +191,7 @@ fun BrowserScreen(
                             FileList(
                                 files = files,
                                 selectedItems = selectedItems,
+                                viewMode = viewMode,
                                 onItemClick = onItemClick,
                                 onItemLongClick = onItemLongClick
                             )
@@ -242,11 +260,15 @@ private fun BrowserToolbar(
     count: Int,
     selectedCount: Int,
     isAllSelected: Boolean,
+    viewMode: ViewMode,
+    onViewModeChange: (ViewMode) -> Unit,
     onCreateFolder: () -> Unit,
     onCreateFile: () -> Unit,
     onSelectAll: () -> Unit,
     onOpenSort: () -> Unit
 ) {
+    var showViewModeMenu by remember { mutableStateOf(false) }
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -267,7 +289,73 @@ private fun BrowserToolbar(
             color = if (selectedCount > 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
         )
 
-        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+            // View Mode switcher button with dropdown
+            Box {
+                IconButton(
+                    onClick = { showViewModeMenu = true },
+                    modifier = Modifier
+                        .size(36.dp)
+                        .testTag("button_view_mode")
+                ) {
+                    val viewIcon = when (viewMode) {
+                        ViewMode.GRID -> Icons.Default.GridView
+                        ViewMode.DETAILED_LIST -> Icons.Default.ViewAgenda
+                        ViewMode.LIST -> Icons.AutoMirrored.Filled.ViewList
+                    }
+                    Icon(
+                        imageVector = viewIcon,
+                        contentDescription = stringResource(R.string.view_layout_mode),
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+
+                DropdownMenu(
+                    expanded = showViewModeMenu,
+                    onDismissRequest = { showViewModeMenu = false }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.view_list)) },
+                        leadingIcon = { Icon(Icons.AutoMirrored.Filled.ViewList, contentDescription = null) },
+                        trailingIcon = {
+                            if (viewMode == ViewMode.LIST) {
+                                Icon(Icons.Default.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                            }
+                        },
+                        onClick = {
+                            onViewModeChange(ViewMode.LIST)
+                            showViewModeMenu = false
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.view_grid)) },
+                        leadingIcon = { Icon(Icons.Default.GridView, contentDescription = null) },
+                        trailingIcon = {
+                            if (viewMode == ViewMode.GRID) {
+                                Icon(Icons.Default.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                            }
+                        },
+                        onClick = {
+                            onViewModeChange(ViewMode.GRID)
+                            showViewModeMenu = false
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.view_detailed_list)) },
+                        leadingIcon = { Icon(Icons.Default.ViewAgenda, contentDescription = null) },
+                        trailingIcon = {
+                            if (viewMode == ViewMode.DETAILED_LIST) {
+                                Icon(Icons.Default.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                            }
+                        },
+                        onClick = {
+                            onViewModeChange(ViewMode.DETAILED_LIST)
+                            showViewModeMenu = false
+                        }
+                    )
+                }
+            }
+
             IconButton(
                 onClick = onOpenSort,
                 modifier = Modifier
@@ -350,30 +438,82 @@ private fun SearchHeader(
 private fun FileList(
     files: List<FileItem>,
     selectedItems: Set<FileItem>,
+    viewMode: ViewMode = ViewMode.LIST,
     showPath: Boolean = false,
     onItemClick: (FileItem) -> Unit,
     onItemLongClick: (FileItem) -> Unit
 ) {
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .testTag("file_list_column"),
-        contentPadding = PaddingValues(top = 4.dp, bottom = 96.dp)
-    ) {
-        items(
-            items = files,
-            key = { it.path },
-            contentType = { it.isDirectory }
-        ) { item ->
-            val isSelected = selectedItems.contains(item)
-            FileItemRow(
-                item = item,
-                isSelected = isSelected,
-                isInSelectionMode = selectedItems.isNotEmpty(),
-                showPath = showPath,
-                onClick = { onItemClick(item) },
-                onLongClick = { onItemLongClick(item) }
-            )
+    when (viewMode) {
+        ViewMode.GRID -> {
+            LazyVerticalGrid(
+                columns = GridCells.Adaptive(minSize = 105.dp),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .testTag("file_grid_list"),
+                contentPadding = PaddingValues(start = 12.dp, end = 12.dp, top = 6.dp, bottom = 96.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(
+                    items = files,
+                    key = { it.path }
+                ) { item ->
+                    FileItemGridCard(
+                        item = item,
+                        isSelected = selectedItems.contains(item),
+                        isInSelectionMode = selectedItems.isNotEmpty(),
+                        onClick = { onItemClick(item) },
+                        onLongClick = { onItemLongClick(item) }
+                    )
+                }
+            }
+        }
+
+        ViewMode.DETAILED_LIST -> {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .testTag("file_detailed_list_column"),
+                contentPadding = PaddingValues(top = 4.dp, bottom = 96.dp)
+            ) {
+                items(
+                    items = files,
+                    key = { it.path },
+                    contentType = { it.isDirectory }
+                ) { item ->
+                    FileItemDetailedRow(
+                        item = item,
+                        isSelected = selectedItems.contains(item),
+                        isInSelectionMode = selectedItems.isNotEmpty(),
+                        onClick = { onItemClick(item) },
+                        onLongClick = { onItemLongClick(item) }
+                    )
+                }
+            }
+        }
+
+        ViewMode.LIST -> {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .testTag("file_list_column"),
+                contentPadding = PaddingValues(top = 4.dp, bottom = 96.dp)
+            ) {
+                items(
+                    items = files,
+                    key = { it.path },
+                    contentType = { it.isDirectory }
+                ) { item ->
+                    FileItemRow(
+                        item = item,
+                        isSelected = selectedItems.contains(item),
+                        isInSelectionMode = selectedItems.isNotEmpty(),
+                        showPath = showPath,
+                        onClick = { onItemClick(item) },
+                        onLongClick = { onItemLongClick(item) }
+                    )
+                }
+            }
         }
     }
 }

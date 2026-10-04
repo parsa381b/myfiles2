@@ -28,6 +28,7 @@ import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.material.icons.filled.PieChart
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -37,6 +38,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -59,7 +61,9 @@ enum class AdvancedSubScreen {
     HUB,
     STORAGE_USAGE,
     DUPLICATE_FINDER,
-    PHONE_INFO
+    PHONE_INFO,
+    BATCH_RENAMER,
+    WIFI_SHARING
 }
 
 @Composable
@@ -74,6 +78,8 @@ fun AdvancedFeaturesScreen(
     onDeleteDuplicates: (List<FileItem>) -> Unit,
     onOpenFile: (File) -> Unit,
     onDeleteFile: (FileItem) -> Unit,
+    candidateFiles: List<File> = emptyList(),
+    onApplyBatchRename: (List<Pair<File, String>>) -> Unit = {},
     onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -115,6 +121,38 @@ fun AdvancedFeaturesScreen(
 
         AdvancedSubScreen.PHONE_INFO -> {
             PhoneInfoScreen(
+                onNavigateBack = { subScreen = AdvancedSubScreen.HUB },
+                modifier = modifier
+            )
+        }
+
+        AdvancedSubScreen.BATCH_RENAMER -> {
+            // If candidateFiles is empty, use sample/recent files from internal storage
+            val effectiveFiles = remember(candidateFiles) {
+                if (candidateFiles.isNotEmpty()) {
+                    candidateFiles
+                } else {
+                    val root = android.os.Environment.getExternalStorageDirectory()
+                    val downloads = android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS)
+                    val candidates = (downloads?.listFiles()?.filter { it.isFile } ?: emptyList())
+                        .ifEmpty { root?.listFiles()?.filter { it.isFile } ?: emptyList() }
+                    candidates.take(15)
+                }
+            }
+
+            BatchRenameScreen(
+                files = effectiveFiles,
+                onApplyRename = { renames ->
+                    onApplyBatchRename(renames)
+                    subScreen = AdvancedSubScreen.HUB
+                },
+                onNavigateBack = { subScreen = AdvancedSubScreen.HUB },
+                modifier = modifier
+            )
+        }
+
+        AdvancedSubScreen.WIFI_SHARING -> {
+            WifiSharingScreen(
                 onNavigateBack = { subScreen = AdvancedSubScreen.HUB },
                 modifier = modifier
             )
@@ -316,12 +354,14 @@ fun AdvancedFeaturesScreen(
                     // 3. Batch File Renamer
                     item {
                         AdvancedFeaturePrimaryCard(
-                            title = "Batch File Renamer",
-                            description = "Bulk rename multiple files using numbering sequences, search/replace, or custom patterns.",
+                            title = stringResource(R.string.batch_renamer),
+                            description = stringResource(R.string.batch_renamer_subtitle),
                             icon = Icons.Default.DriveFileRenameOutline,
                             accentColor = Color(0xFFF59E0B),
-                            badgeText = "Ready to Configure",
-                            onClick = {},
+                            badgeText = if (candidateFiles.isNotEmpty()) "${candidateFiles.size} Files" else "Open Tool",
+                            onClick = {
+                                subScreen = AdvancedSubScreen.BATCH_RENAMER
+                            },
                             testTag = "card_batch_renamer"
                         )
                     }
@@ -329,12 +369,14 @@ fun AdvancedFeaturesScreen(
                     // 4. Local Network & Wi-Fi Sharing
                     item {
                         AdvancedFeaturePrimaryCard(
-                            title = "Local Network & Wi-Fi Sharing",
-                            description = "Transfer files wirelessly between your Android device and PC on your local network.",
-                            icon = Icons.Default.Share,
-                            accentColor = Color(0xFFEC4899),
-                            badgeText = "Ready to Configure",
-                            onClick = {},
+                            title = stringResource(R.string.wifi_sharing),
+                            description = stringResource(R.string.wifi_sharing_subtitle),
+                            icon = Icons.Default.Wifi,
+                            accentColor = Color(0xFF10B981),
+                            badgeText = "Wireless Transfer",
+                            onClick = {
+                                subScreen = AdvancedSubScreen.WIFI_SHARING
+                            },
                             testTag = "card_wifi_sharing"
                         )
                     }

@@ -19,6 +19,7 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Share
@@ -187,6 +188,17 @@ fun TextEditorDialog(
                                 imageVector = Icons.Default.Save,
                                 contentDescription = stringResource(R.string.save),
                                 tint = if (isModified) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f)
+                            )
+                        }
+
+                        IconButton(
+                            onClick = { FileUtils.openWithAnotherApp(context, file) },
+                            modifier = Modifier.testTag("text_editor_open_with")
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.OpenInNew,
+                                contentDescription = stringResource(R.string.open_with_another_app),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
 

@@ -204,10 +204,12 @@ private fun MainContent(viewModel: FileViewModel) {
     val isAnalyzingStorage by viewModel.isAnalyzingStorage.collectAsStateWithLifecycle()
     val duplicateGroups by viewModel.duplicateGroups.collectAsStateWithLifecycle()
     val isScanningDuplicates by viewModel.isScanningDuplicates.collectAsStateWithLifecycle()
+    val viewMode by viewModel.viewMode.collectAsStateWithLifecycle()
 
     var isSearchActive by remember { mutableStateOf(false) }
     var isTrashOpen by remember { mutableStateOf(false) }
     var isAdvancedFeaturesOpen by remember { mutableStateOf(false) }
+    var isBatchRenameOpen by remember { mutableStateOf(false) }
     var showRationaleDialog by rememberSaveable { mutableStateOf(!hasPermission) }
     var showCreateFolderDialog by remember { mutableStateOf(false) }
     var showCreateFileDialog by remember { mutableStateOf(false) }
@@ -249,6 +251,8 @@ private fun MainContent(viewModel: FileViewModel) {
     BackHandler(enabled = true) {
         if (activeViewer != null) {
             activeViewer = null
+        } else if (isBatchRenameOpen) {
+            isBatchRenameOpen = false
         } else if (isTrashOpen) {
             isTrashOpen = false
         } else if (isAdvancedFeaturesOpen) {
@@ -386,9 +390,17 @@ private fun MainContent(viewModel: FileViewModel) {
                 ) {
                     val singleItem = if (selectedItems.size == 1) selectedItems.first() else null
                     val canExtract = singleItem != null && com.example.util.ArchiveFormat.fromFile(singleItem.file) != null
+                    val canOpenWith = singleItem != null && !singleItem.isDirectory
                     OperationBottomBar(
                         selectedCount = selectedItems.size,
                         canExtract = canExtract,
+                        canOpenWith = canOpenWith,
+                        onOpenWith = {
+                            singleItem?.let {
+                                FileUtils.openWithAnotherApp(context, it.file)
+                                viewModel.clearSelection()
+                            }
+                        },
                         onExtract = {
                             singleItem?.let {
                                 viewModel.clearSelection()
@@ -405,6 +417,9 @@ private fun MainContent(viewModel: FileViewModel) {
                         },
                         onDetails = {
                             detailsTargetItem = selectedItems.firstOrNull()
+                        },
+                        onBatchRename = {
+                            isBatchRenameOpen = true
                         }
                     )
                 }
@@ -430,7 +445,16 @@ private fun MainContent(viewModel: FileViewModel) {
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            if (isTrashOpen) {
+            if (isBatchRenameOpen) {
+                com.example.ui.screens.BatchRenameScreen(
+                    files = selectedItems.map { it.file },
+                    onApplyRename = { renames ->
+                        viewModel.batchRenameFiles(renames)
+                        isBatchRenameOpen = false
+                    },
+                    onNavigateBack = { isBatchRenameOpen = false }
+                )
+            } else if (isTrashOpen) {
                 TrashScreen(
                     trashItems = trashItems,
                     onRestoreItems = { viewModel.restoreTrashItems(it) },
@@ -459,6 +483,10 @@ private fun MainContent(viewModel: FileViewModel) {
                     onDeleteFile = { item ->
                         viewModel.deleteDuplicateFiles(listOf(item))
                     },
+                    candidateFiles = selectedItems.map { it.file },
+                    onApplyBatchRename = { renames ->
+                        viewModel.batchRenameFiles(renames)
+                    },
                     onNavigateBack = { isAdvancedFeaturesOpen = false }
                 )
             } else if (activeCategory != null) {
@@ -467,6 +495,8 @@ private fun MainContent(viewModel: FileViewModel) {
                     files = categoryFiles,
                     isLoading = isCategoryLoading,
                     selectedItems = selectedItems,
+                    viewMode = viewMode,
+                    onViewModeChange = { viewModel.setViewMode(it) },
                     searchQuery = searchQuery,
                     onItemClick = { item ->
                         keyboardController?.hide()
@@ -492,6 +522,8 @@ private fun MainContent(viewModel: FileViewModel) {
                         searchResults = searchResults,
                         isSearching = isSearching,
                         selectedItems = selectedItems,
+                        viewMode = viewMode,
+                        onViewModeChange = { viewModel.setViewMode(it) },
                         onItemClick = { item ->
                             keyboardController?.hide()
                             if (selectedItems.isNotEmpty()) {
@@ -529,6 +561,8 @@ private fun MainContent(viewModel: FileViewModel) {
                     rootDirectory = storages.firstOrNull()?.rootFile,
                     uiState = uiState,
                     selectedItems = selectedItems,
+                    viewMode = viewMode,
+                    onViewModeChange = { viewModel.setViewMode(it) },
                     searchQuery = searchQuery,
                     searchResults = searchResults,
                     isSearching = isSearching,
@@ -650,6 +684,10 @@ private fun MainContent(viewModel: FileViewModel) {
         detailsTargetItem?.let { item ->
             FileDetailsDialog(
                 item = item,
+                onOpenWith = {
+                    FileUtils.openWithAnotherApp(context, item.file)
+                    viewModel.clearSelection()
+                },
                 onDismiss = { detailsTargetItem = null }
             )
         }

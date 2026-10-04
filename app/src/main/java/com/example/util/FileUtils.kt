@@ -47,11 +47,28 @@ object FileUtils {
     fun getMimeType(file: File): String {
         val ext = file.extension.lowercase(Locale.ROOT)
         if (ext.isEmpty()) return "*/*"
-        val mime = MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext)
+        val mime = try {
+            MimeTypeMap.getSingleton()?.getMimeTypeFromExtension(ext)
+        } catch (_: Throwable) {
+            null
+        }
         if (mime != null) return mime
         return when (ext) {
             "apk", "xapk", "apks" -> "application/vnd.android.package-archive"
             "pdf" -> "application/pdf"
+            "jpg", "jpeg" -> "image/jpeg"
+            "png" -> "image/png"
+            "gif" -> "image/gif"
+            "webp" -> "image/webp"
+            "svg" -> "image/svg+xml"
+            "mp3" -> "audio/mpeg"
+            "wav" -> "audio/wav"
+            "flac" -> "audio/flac"
+            "ogg", "opus" -> "audio/ogg"
+            "m4a", "aac" -> "audio/mp4"
+            "mp4" -> "video/mp4"
+            "mkv" -> "video/x-matroska"
+            "webm" -> "video/webm"
             "zip" -> "application/zip"
             "rar" -> "application/x-rar-compressed"
             "7z" -> "application/x-7z-compressed"
@@ -120,6 +137,10 @@ object FileUtils {
         } catch (e: Exception) {
             Toast.makeText(context, "No app found to open this file", Toast.LENGTH_SHORT).show()
         }
+    }
+
+    fun openWithAnotherApp(context: Context, file: File) {
+        openFile(context, file)
     }
 
     fun shareFiles(context: Context, files: List<File>) {

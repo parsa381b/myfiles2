@@ -88,6 +88,20 @@ class FileViewModel(
     private val _sortOption = MutableStateFlow(SortOption.NAME_ASC)
     val sortOption: StateFlow<SortOption> = _sortOption.asStateFlow()
 
+    private val _viewMode = MutableStateFlow(
+        when (prefs.getString("pref_view_mode", "LIST")) {
+            "GRID" -> com.example.data.model.ViewMode.GRID
+            "DETAILED_LIST" -> com.example.data.model.ViewMode.DETAILED_LIST
+            else -> com.example.data.model.ViewMode.LIST
+        }
+    )
+    val viewMode: StateFlow<com.example.data.model.ViewMode> = _viewMode.asStateFlow()
+
+    fun setViewMode(mode: com.example.data.model.ViewMode) {
+        _viewMode.value = mode
+        prefs.edit().putString("pref_view_mode", mode.name).apply()
+    }
+
     private val _activeCategory = MutableStateFlow<FileCategory?>(null)
     val activeCategory: StateFlow<FileCategory?> = _activeCategory.asStateFlow()
 
@@ -382,6 +396,28 @@ class FileViewModel(
                     refreshCurrentDirectory()
                 }
                 .onFailure { _userMessage.emit(it.localizedMessage ?: "Rename failed") }
+        }
+    }
+
+    fun batchRenameFiles(renames: List<Pair<File, String>>, onComplete: (Int, Int) -> Unit = { _, _ -> }) {
+        viewModelScope.launch {
+            var successCount = 0
+            var errorCount = 0
+            for ((file, newName) in renames) {
+                if (file.name != newName) {
+                    val res = repository.renameFile(file, newName)
+                    if (res.isSuccess) successCount++ else errorCount++
+                }
+            }
+            clearSelection()
+            refreshCurrentDirectory()
+            val msg = if (errorCount == 0) {
+                "Renamed $successCount file(s) successfully"
+            } else {
+                "Renamed $successCount file(s), $errorCount failed"
+            }
+            _userMessage.emit(msg)
+            onComplete(successCount, errorCount)
         }
     }
 

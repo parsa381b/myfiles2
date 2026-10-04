@@ -15,6 +15,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Switch
@@ -160,6 +161,7 @@ fun ConfirmDeleteDialog(
 @Composable
 fun FileDetailsDialog(
     item: FileItem,
+    onOpenWith: (() -> Unit)? = null,
     onDismiss: () -> Unit
 ) {
     AlertDialog(
@@ -189,6 +191,18 @@ fun FileDetailsDialog(
                 Text(stringResource(R.string.close))
             }
         },
+        dismissButton = if (!item.isDirectory && onOpenWith != null) {
+            @Composable {
+                TextButton(
+                    onClick = {
+                        onDismiss()
+                        onOpenWith()
+                    }
+                ) {
+                    Text(stringResource(R.string.open_with))
+                }
+            }
+        } else null,
         shape = RoundedCornerShape(24.dp)
     )
 }

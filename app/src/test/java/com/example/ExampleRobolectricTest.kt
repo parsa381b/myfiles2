@@ -25,9 +25,15 @@ class ExampleRobolectricTest {
   fun `read string from context in Persian locale`() {
     val context = ApplicationProvider.getApplicationContext<Context>()
     val config = Configuration(context.resources.configuration)
-    config.setLocale(Locale("fa"))
+    config.setLocale(Locale.Builder().setLanguage("fa").build())
     val localizedContext = context.createConfigurationContext(config)
     val appNameFa = localizedContext.getString(R.string.app_name)
     assertEquals("فایل‌های من", appNameFa)
+  }
+
+  @Test
+  fun testMediaThumbnailLoader() {
+    val cached = com.example.util.MediaThumbnailLoader.getCachedThumbnail("/non/existent/path.mp3")
+    assertEquals(null, cached)
   }
 }

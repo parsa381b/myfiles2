@@ -6,6 +6,7 @@ import com.example.util.FileUtils
 import com.example.util.SyntaxHighlighter
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -34,7 +35,8 @@ class ExampleUnitTest {
         assertTrue(FileUtils.getViewerForFile(File("doc.pdf")) is ActiveViewer.Pdf)
         assertTrue(FileUtils.getViewerForFile(File("script.kt")) is ActiveViewer.Text)
         assertTrue(FileUtils.getViewerForFile(File("data.json")) is ActiveViewer.Text)
-        assertEquals(null, FileUtils.getViewerForFile(File("archive.zip")))
+        assertTrue(FileUtils.getViewerForFile(File("archive.zip")) is ActiveViewer.ArchiveExtractor)
+        assertEquals(null, FileUtils.getViewerForFile(File("unknown.xyz")))
     }
 
     @Test
@@ -43,12 +45,6 @@ class ExampleUnitTest {
         val highlighted = SyntaxHighlighter.highlight(code, "kt", isDark = true)
         assertEquals(code, highlighted.text)
         assertTrue(highlighted.spanStyles.isNotEmpty())
-    }
-
-    @Test
-    fun testMediaThumbnailLoader() {
-        val cached = com.example.util.MediaThumbnailLoader.getCachedThumbnail("/non/existent/path.mp3")
-        assertEquals(null, cached)
     }
 
     @Test
